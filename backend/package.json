@@ -1,0 +1,19 @@
+{
+  "name": "sanjeevani-backend",
+  "version": "1.0.0",
+  "description": "Sanjeevani API server",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "node src/index.js",
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "ethers": "^6.13.4",
+    "express": "^4.21.1",
+    "multer": "^1.4.5-lts.1",
+    "pdf-parse": "^1.1.1",
+    "sharp": "^0.33.5"
+  }
+}

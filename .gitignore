@@ -1,0 +1,24 @@
+node_modules/
+.env
+dist/
+build/
+
+# Backend
+backend/uploads/
+
+# Frontend
+frontend/dist/
+frontend/.vite/
+
+# Contracts
+contracts/artifacts/
+contracts/cache/
+contracts/typechain-types/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

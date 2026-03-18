@@ -1,0 +1,13 @@
+{
+  "name": "sanjeevani-contracts",
+  "version": "1.0.0",
+  "description": "Sanjeevani smart contracts",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "hardhat": "^2.22.17"
+  }
+}
