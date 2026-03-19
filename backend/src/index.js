@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 
 const analyzeRoutes = require('./routes/analyze');
+const attestationRoutes = require('./routes/attestation');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -15,6 +16,7 @@ app.get('/api/health', (req, res) => {
 });
 
 app.use('/api/analyze', analyzeRoutes);
+app.use('/api/attestation', attestationRoutes);
 
 app.listen(PORT, () => {
   console.log(`Sanjeevani backend running on port ${PORT}`);
