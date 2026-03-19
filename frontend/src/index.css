@@ -1,1 +1,248 @@
 @import "tailwindcss";
+
+@theme {
+  --color-bg: #0A0A0F;
+  --color-bg-center: #0F1118;
+  --color-surface: rgba(255, 255, 255, 0.03);
+  --color-border: rgba(255, 255, 255, 0.06);
+  --color-border-strong: rgba(255, 255, 255, 0.12);
+  --color-gold: #D4A574;
+  --color-gold-dim: rgba(212, 165, 116, 0.2);
+  --color-gold-faint: rgba(212, 165, 116, 0.08);
+  --color-emerald: #34D399;
+  --color-amber: #FBBF24;
+  --color-critical: #F87171;
+  --color-text: #E8E4DD;
+  --color-text-secondary: #6B6860;
+  --color-text-dim: #3D3A35;
+  --font-display: 'Instrument Serif', serif;
+  --font-body: 'Satoshi', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background: radial-gradient(ellipse at 50% 40%, var(--color-bg-center) 0%, var(--color-bg) 70%);
+}
+
+/* Grid background */
+.grid-bg {
+  background-image:
+    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+.grid-bg-gold {
+  background-image:
+    linear-gradient(rgba(212,165,116,0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(212,165,116,0.08) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Agent name styling */
+.agent-name {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-weight: 500;
+}
+
+/* Shimmer animation for loading */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.03) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+/* Gold shimmer for title */
+@keyframes goldShimmer {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.gold-shimmer {
+  background: linear-gradient(120deg, var(--color-text) 0%, var(--color-gold) 25%, var(--color-text) 50%, var(--color-gold) 75%, var(--color-text) 100%);
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: goldShimmer 6s ease-in-out infinite;
+}
+
+/* Pulse animation */
+@keyframes pulse-gold {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+.pulse-gold {
+  animation: pulse-gold 2s ease-in-out infinite;
+}
+
+/* Pipeline glow animation */
+@keyframes pipelineGlow {
+  0% { left: -10%; opacity: 0; }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { left: 110%; opacity: 0; }
+}
+
+.pipeline-glow {
+  animation: pipelineGlow 2s ease-in-out forwards;
+}
+
+/* Stamp animation */
+@keyframes stampIn {
+  0% { transform: scale(3); opacity: 0; }
+  50% { transform: scale(0.9); opacity: 1; }
+  70% { transform: scale(1.05); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.stamp-animate {
+  animation: stampIn 0.6s ease-out forwards;
+}
+
+/* SVG ring animation */
+@keyframes ringFill {
+  from { stroke-dashoffset: 283; }
+}
+
+/* Fade transition */
+.page-enter {
+  opacity: 0;
+}
+.page-enter-active {
+  opacity: 1;
+  transition: opacity 200ms ease-in;
+}
+
+/* Slide-in for rows */
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.slide-in {
+  animation: slideIn 300ms ease-out forwards;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.08);
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.15);
+}
+
+/* Range input styling */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  width: 100%;
+  height: 20px;
+  cursor: pointer;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 2px;
+  background: var(--color-border-strong);
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 1px;
+  background: var(--color-gold);
+  margin-top: -5px;
+}
+
+/* Toggle switch */
+.toggle-track {
+  width: 36px;
+  height: 18px;
+  border-radius: 2px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  position: relative;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.toggle-track.active {
+  background: rgba(212,165,116,0.2);
+  border-color: var(--color-gold);
+}
+.toggle-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 1px;
+  background: var(--color-text-secondary);
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  transition: all 0.2s;
+}
+.toggle-track.active .toggle-thumb {
+  left: 19px;
+  background: var(--color-gold);
+}
+
+/* Select styling */
+select {
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  padding: 8px 12px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  border-radius: 2px;
+  cursor: pointer;
+}
+select:focus {
+  outline: none;
+  border-color: var(--color-gold);
+}
+
+input[type="text"], input[type="number"], textarea {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  padding: 8px 12px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  border-radius: 2px;
+}
+input[type="text"]:focus, input[type="number"]:focus, textarea:focus {
+  outline: none;
+  border-color: var(--color-gold);
+}

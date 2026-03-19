@@ -1,0 +1,96 @@
+{
+  "abi": [
+    {
+      "inputs": [{"internalType":"bytes32","name":"conditionCode","type":"bytes32"},{"internalType":"string","name":"conditionName","type":"string"},{"internalType":"uint8","name":"severity","type":"uint8"},{"internalType":"uint8","name":"confidence","type":"uint8"},{"internalType":"bytes32","name":"evidenceHash","type":"bytes32"}],
+      "name": "publishAttestation",
+      "outputs": [{"internalType":"uint256","name":"","type":"uint256"}],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [{"internalType":"uint256","name":"attestationId","type":"uint256"}],
+      "name": "revokeAttestation",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [{"internalType":"uint256","name":"attestationId","type":"uint256"}],
+      "name": "getAttestation",
+      "outputs": [{"components":[{"internalType":"address","name":"patient","type":"address"},{"internalType":"bytes32","name":"conditionCode","type":"bytes32"},{"internalType":"string","name":"conditionName","type":"string"},{"internalType":"uint8","name":"severity","type":"uint8"},{"internalType":"uint8","name":"confidence","type":"uint8"},{"internalType":"bytes32","name":"evidenceHash","type":"bytes32"},{"internalType":"uint256","name":"timestamp","type":"uint256"},{"internalType":"bool","name":"active","type":"bool"}],"internalType":"struct HealthAttestation.Attestation","name":"","type":"tuple"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [{"internalType":"bytes32","name":"conditionCode","type":"bytes32"}],
+      "name": "queryByCondition",
+      "outputs": [{"internalType":"uint256[]","name":"","type":"uint256[]"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [{"internalType":"address","name":"patient","type":"address"}],
+      "name": "getPatientAttestations",
+      "outputs": [{"internalType":"uint256[]","name":"","type":"uint256[]"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [{"internalType":"uint256","name":"attestationId","type":"uint256"},{"internalType":"string","name":"studyName","type":"string"},{"internalType":"string","name":"description","type":"string"}],
+      "name": "sendTrialInvitation",
+      "outputs": [{"internalType":"uint256","name":"","type":"uint256"}],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [{"internalType":"uint256","name":"invitationId","type":"uint256"}],
+      "name": "acceptTrialInvitation",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [{"internalType":"uint256","name":"invitationId","type":"uint256"}],
+      "name": "declineTrialInvitation",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [{"internalType":"uint256","name":"attestationId","type":"uint256"},{"internalType":"string","name":"dataRequested","type":"string"}],
+      "name": "requestDataPurchase",
+      "outputs": [{"internalType":"uint256","name":"","type":"uint256"}],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [{"internalType":"uint256","name":"purchaseId","type":"uint256"}],
+      "name": "acceptDataPurchase",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [{"internalType":"uint256","name":"purchaseId","type":"uint256"}],
+      "name": "declineDataPurchase",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [{"internalType":"address","name":"patient","type":"address"}],
+      "name": "getPatientInvitations",
+      "outputs": [{"internalType":"uint256[]","name":"","type":"uint256[]"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [{"internalType":"address","name":"patient","type":"address"}],
+      "name": "getPatientPurchaseRequests",
+      "outputs": [{"internalType":"uint256[]","name":"","type":"uint256[]"}],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "_note": "Placeholder ABI — replace with compiled artifact after deployment"
+}
