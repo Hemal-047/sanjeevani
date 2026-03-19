@@ -98,4 +98,28 @@ async function analyze(fileBuffer, { mimeType = 'application/pdf', documentType 
   }
 }
 
-module.exports = { analyze };
+// Process multiple files in parallel
+async function analyzeParallel(files, onProgress) {
+  const ALLOWED_TYPES = ['application/pdf', 'image/png', 'image/jpeg', 'image/webp'];
+
+  const promises = files.map(async (file, index) => {
+    if (!ALLOWED_TYPES.includes(file.mimetype)) {
+      const result = { filename: file.originalname, error: 'invalid_type', message: `Unsupported: ${file.mimetype}` };
+      if (onProgress) onProgress({ index, filename: file.originalname, status: 'error', result });
+      return result;
+    }
+
+    if (onProgress) onProgress({ index, filename: file.originalname, status: 'processing' });
+
+    const result = await analyze(file.buffer, { mimeType: file.mimetype });
+    const output = { filename: file.originalname, ...result };
+
+    if (onProgress) onProgress({ index, filename: file.originalname, status: result.error ? 'error' : 'complete', result: output });
+
+    return output;
+  });
+
+  return Promise.all(promises);
+}
+
+module.exports = { analyze, analyzeParallel };

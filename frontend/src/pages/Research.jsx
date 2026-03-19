@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { searchResearcher } from '../services/api';
-import { sendTrialInvitation, requestDataPurchase } from '../services/wallet';
+import { sendTrialInvitation, requestDataPurchase, switchToBaseSepolia, txLink } from '../services/wallet';
 
 const CONDITION_OPTIONS = [
   'Type 2 Diabetes', 'Pre-diabetes', 'Hypertension', 'Dyslipidemia',
@@ -20,11 +20,11 @@ export default function Research() {
   const [searching, setSearching] = useState(false);
   const [expandedRow, setExpandedRow] = useState(null);
   const [expandedType, setExpandedType] = useState(null);
-  const [inviteForm, setInviteForm] = useState({ studyName: '', description: '', compensation: '0.01' });
-  const [purchaseForm, setPurchaseForm] = useState({ dataRequested: '', price: '0.01' });
+  const [inviteForm, setInviteForm] = useState({ studyName: '', description: '', compensation: '0.001' });
+  const [purchaseForm, setPurchaseForm] = useState({ dataRequested: '', price: '0.001' });
   const [txStatus, setTxStatus] = useState({});
 
-  // Mock attestations for demo (in production, query from contract)
+  // Mock attestations for demo (supplements onchain data)
   const mockAttestations = [
     { attestationId: 1, conditionCode: 'R73.03', conditionName: 'Pre-diabetes', severity: 'high', confidence: 90, evidenceSummary: 'Fasting glucose 126, HbA1c 6.4%', userAge: 42 },
     { attestationId: 2, conditionCode: 'E78.5', conditionName: 'Dyslipidemia', severity: 'high', confidence: 95, evidenceSummary: 'LDL 148, HDL 39, Triglycerides 205', userAge: 42 },
@@ -35,6 +35,7 @@ export default function Research() {
 
   async function handleSearch() {
     setSearching(true);
+    setResults(null);
     try {
       const res = await searchResearcher(criteria, mockAttestations);
       setResults(res.data || res);
@@ -52,23 +53,59 @@ export default function Research() {
   }
 
   async function handleInvite(attestationId) {
-    setTxStatus(prev => ({ ...prev, [`invite_${attestationId}`]: 'pending' }));
+    const key = `invite_${attestationId}`;
+    setTxStatus(prev => ({ ...prev, [key]: { status: 'pending', message: 'Confirm in wallet...' } }));
     try {
-      await sendTrialInvitation(attestationId, inviteForm.studyName, inviteForm.description, inviteForm.compensation);
-      setTxStatus(prev => ({ ...prev, [`invite_${attestationId}`]: 'success' }));
+      await switchToBaseSepolia();
+      const result = await sendTrialInvitation(attestationId, inviteForm.studyName, inviteForm.description, inviteForm.compensation);
+      setTxStatus(prev => ({
+        ...prev,
+        [key]: { status: 'success', message: 'Invitation sent!', hash: result.tx.hash },
+      }));
     } catch (err) {
-      setTxStatus(prev => ({ ...prev, [`invite_${attestationId}`]: `error: ${err.message}` }));
+      setTxStatus(prev => ({
+        ...prev,
+        [key]: { status: 'error', message: err.message },
+      }));
     }
   }
 
   async function handlePurchase(attestationId) {
-    setTxStatus(prev => ({ ...prev, [`purchase_${attestationId}`]: 'pending' }));
+    const key = `purchase_${attestationId}`;
+    setTxStatus(prev => ({ ...prev, [key]: { status: 'pending', message: 'Confirm in wallet...' } }));
     try {
-      await requestDataPurchase(attestationId, purchaseForm.dataRequested, purchaseForm.price);
-      setTxStatus(prev => ({ ...prev, [`purchase_${attestationId}`]: 'success' }));
+      await switchToBaseSepolia();
+      const result = await requestDataPurchase(attestationId, purchaseForm.dataRequested, purchaseForm.price);
+      setTxStatus(prev => ({
+        ...prev,
+        [key]: { status: 'success', message: 'Purchase request sent!', hash: result.tx.hash },
+      }));
     } catch (err) {
-      setTxStatus(prev => ({ ...prev, [`purchase_${attestationId}`]: `error: ${err.message}` }));
+      setTxStatus(prev => ({
+        ...prev,
+        [key]: { status: 'error', message: err.message },
+      }));
     }
+  }
+
+  function TxStatusDisplay({ txKey }) {
+    const s = txStatus[txKey];
+    if (!s) return null;
+    const color = s.status === 'success' ? 'var(--color-emerald)' : s.status === 'pending' ? 'var(--color-gold)' : 'var(--color-critical)';
+    return (
+      <div style={{ marginTop: '6px' }}>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color }}>
+          {s.status === 'pending' && '⏳ '}{s.status === 'success' && '✓ '}{s.status === 'error' && '✗ '}
+          {s.message}
+        </span>
+        {s.hash && (
+          <a href={txLink(s.hash)} target="_blank" rel="noopener noreferrer"
+            style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--color-emerald)', marginLeft: '8px', textDecoration: 'none' }}>
+            {s.hash.slice(0, 16)}...
+          </a>
+        )}
+      </div>
+    );
   }
 
   const matches = results?.matches || [];
@@ -288,7 +325,7 @@ export default function Research() {
                     )}
                   </div>
 
-                  {/* Inline forms */}
+                  {/* Inline invite form */}
                   {isExpanded && expandedType === 'invite' && (
                     <div className="px-4 pb-3 pt-1" style={{ borderTop: '1px solid var(--color-border)' }}>
                       <div className="space-y-2">
@@ -305,23 +342,22 @@ export default function Research() {
                           <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--color-text-dim)' }}>ETH compensation</span>
                           <button
                             onClick={() => handleInvite(m.attestationId)}
+                            disabled={txStatus[`invite_${m.attestationId}`]?.status === 'pending'}
                             style={{
                               fontFamily: 'var(--font-mono)', fontSize: '10px', color: '#0A0A0F',
                               background: 'var(--color-gold)', border: 'none', padding: '4px 12px',
                               borderRadius: '1px', cursor: 'pointer', marginLeft: 'auto', letterSpacing: '0.05em',
+                              opacity: txStatus[`invite_${m.attestationId}`]?.status === 'pending' ? 0.5 : 1,
                             }}>
-                            SEND
+                            {txStatus[`invite_${m.attestationId}`]?.status === 'pending' ? 'SENDING...' : 'SEND'}
                           </button>
                         </div>
-                        {txStatus[`invite_${m.attestationId}`] && (
-                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: txStatus[`invite_${m.attestationId}`] === 'success' ? 'var(--color-emerald)' : txStatus[`invite_${m.attestationId}`] === 'pending' ? 'var(--color-gold)' : 'var(--color-critical)' }}>
-                            {txStatus[`invite_${m.attestationId}`]}
-                          </span>
-                        )}
+                        <TxStatusDisplay txKey={`invite_${m.attestationId}`} />
                       </div>
                     </div>
                   )}
 
+                  {/* Inline purchase form */}
                   {isExpanded && expandedType === 'purchase' && (
                     <div className="px-4 pb-3 pt-1" style={{ borderTop: '1px solid var(--color-border)' }}>
                       <div className="space-y-2">
@@ -335,19 +371,17 @@ export default function Research() {
                           <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--color-text-dim)' }}>ETH offered</span>
                           <button
                             onClick={() => handlePurchase(m.attestationId)}
+                            disabled={txStatus[`purchase_${m.attestationId}`]?.status === 'pending'}
                             style={{
                               fontFamily: 'var(--font-mono)', fontSize: '10px', color: '#0A0A0F',
                               background: 'var(--color-gold)', border: 'none', padding: '4px 12px',
                               borderRadius: '1px', cursor: 'pointer', marginLeft: 'auto', letterSpacing: '0.05em',
+                              opacity: txStatus[`purchase_${m.attestationId}`]?.status === 'pending' ? 0.5 : 1,
                             }}>
-                            SEND
+                            {txStatus[`purchase_${m.attestationId}`]?.status === 'pending' ? 'SENDING...' : 'SEND'}
                           </button>
                         </div>
-                        {txStatus[`purchase_${m.attestationId}`] && (
-                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: txStatus[`purchase_${m.attestationId}`] === 'success' ? 'var(--color-emerald)' : txStatus[`purchase_${m.attestationId}`] === 'pending' ? 'var(--color-gold)' : 'var(--color-critical)' }}>
-                            {txStatus[`purchase_${m.attestationId}`]}
-                          </span>
-                        )}
+                        <TxStatusDisplay txKey={`purchase_${m.attestationId}`} />
                       </div>
                     </div>
                   )}

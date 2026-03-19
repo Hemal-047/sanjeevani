@@ -37,6 +37,77 @@ export async function analyzeComprehensive(files, familyHistory = null) {
   return res.json();
 }
 
+// SSE streaming analysis — returns an abort controller so caller can cancel
+export function analyzeStream(files, familyHistory, callbacks) {
+  const {
+    onDrishtiStart,
+    onDrishtiProgress,
+    onDrishtiComplete,
+    onBodhiStart,
+    onBodhiStep,
+    onBodhiComplete,
+    onMudraStart,
+    onMudraComplete,
+    onDone,
+    onError,
+  } = callbacks;
+
+  const form = new FormData();
+  files.forEach(f => form.append('files', f));
+  if (familyHistory) form.append('familyHistory', JSON.stringify(familyHistory));
+
+  const abortController = new AbortController();
+
+  fetch(`${API_BASE}/api/analyze/stream`, {
+    method: 'POST',
+    body: form,
+    signal: abortController.signal,
+  }).then(async (response) => {
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      let currentEvent = null;
+      for (const line of lines) {
+        if (line.startsWith('event: ')) {
+          currentEvent = line.slice(7);
+        } else if (line.startsWith('data: ') && currentEvent) {
+          try {
+            const data = JSON.parse(line.slice(6));
+            switch (currentEvent) {
+              case 'drishti_start': onDrishtiStart?.(data); break;
+              case 'drishti_progress': onDrishtiProgress?.(data); break;
+              case 'drishti_complete': onDrishtiComplete?.(data); break;
+              case 'bodhi_start': onBodhiStart?.(data); break;
+              case 'bodhi_step': onBodhiStep?.(data); break;
+              case 'bodhi_complete': onBodhiComplete?.(data); break;
+              case 'mudra_start': onMudraStart?.(data); break;
+              case 'mudra_complete': onMudraComplete?.(data); break;
+              case 'done': onDone?.(data); break;
+              case 'error': onError?.(data); break;
+            }
+          } catch { /* skip malformed JSON */ }
+          currentEvent = null;
+        }
+      }
+    }
+  }).catch((err) => {
+    if (err.name !== 'AbortError') {
+      onError?.({ message: err.message });
+    }
+  });
+
+  return abortController;
+}
+
 export async function prepareAttestations(bodhiOutput) {
   return request('/api/attestation/prepare', {
     method: 'POST',

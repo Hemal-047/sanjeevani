@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { publishAttestation } from '../services/wallet';
+import { publishAttestation, switchToBaseSepolia, txLink } from '../services/wallet';
 
 function Toggle({ active, onToggle }) {
   return (
@@ -30,6 +30,7 @@ export default function Attestation() {
     const hashes = [];
 
     try {
+      await switchToBaseSepolia();
       for (let i = 0; i < attestations.length; i++) {
         if (!selected[i]) continue;
         const a = attestations[i];
@@ -41,7 +42,7 @@ export default function Attestation() {
             a.confidence,
             a.evidenceHash
           );
-          hashes.push({ index: i, hash: result.tx.hash, success: true });
+          hashes.push({ index: i, hash: result.tx.hash, txUrl: result.txUrl, success: true });
         } catch (err) {
           if (err.message.includes('Contract not yet deployed')) {
             setPublishError(err.message);
@@ -139,7 +140,7 @@ export default function Attestation() {
                   <div className="mt-2">
                     {txHashes.find(t => t.index === i).success ? (
                       <a
-                        href={`https://sepolia.basescan.org/tx/${txHashes.find(t => t.index === i).hash}`}
+                        href={txLink(txHashes.find(t => t.index === i).hash)}
                         target="_blank" rel="noopener noreferrer"
                         style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--color-emerald)', textDecoration: 'none' }}>
                         ✓ tx: {txHashes.find(t => t.index === i).hash?.slice(0, 20)}...
