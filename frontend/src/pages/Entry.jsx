@@ -53,10 +53,10 @@ export default function Entry() {
       </p>
 
       {/* Agent Pipeline */}
-      <div className="flex items-center gap-0 mb-16" style={{ maxWidth: '720px', width: '100%', justifyContent: 'center' }}>
+      <div className="flex items-center gap-0" style={{ maxWidth: '680px', width: '90%', justifyContent: 'center', marginBottom: '24px' }}>
         {AGENTS.map((agent, i) => (
           <div key={agent.name} className="flex items-center">
-            <div className="flex flex-col items-center" style={{ minWidth: '120px' }}>
+            <div className="flex flex-col items-center" style={{ minWidth: '120px', maxWidth: '130px' }}>
               <span className="agent-name" style={{
                 fontSize: '13px',
                 color: pipelineActive ? 'var(--color-gold)' : 'var(--color-text-secondary)',
@@ -67,15 +67,16 @@ export default function Entry() {
               <span style={{
                 fontFamily: 'var(--font-body)',
                 fontSize: '11px',
-                color: 'var(--color-text-dim)',
-                marginTop: '4px',
+                color: '#8A8680',
+                marginTop: '10px',
                 textAlign: 'center',
+                lineHeight: '1.4',
               }}>
                 {agent.desc}
               </span>
             </div>
             {i < AGENTS.length - 1 && (
-              <div className="relative" style={{ width: '48px', height: '1px', background: 'var(--color-border-strong)', margin: '0 4px', marginBottom: '16px' }}>
+              <div className="relative" style={{ width: '32px', height: '1px', background: 'var(--color-border-strong)', margin: '0 2px', marginBottom: '24px' }}>
                 {pipelineActive && (
                   <div className="absolute top-0 h-full pipeline-glow" style={{
                     width: '16px',
@@ -91,7 +92,7 @@ export default function Entry() {
       </div>
 
       {/* Connect Buttons */}
-      <div className="flex gap-4">
+      <div className="flex gap-4" style={{ marginTop: '60px' }}>
         <button
           onClick={() => handleConnect('patient')}
           disabled={connecting}
@@ -109,7 +110,7 @@ export default function Entry() {
           }}
           onMouseEnter={e => { e.target.style.background = 'rgba(212,165,116,0.1)'; }}
           onMouseLeave={e => { e.target.style.background = 'transparent'; }}>
-          Connect Wallet — I'm a Patient
+          Connect Wallet — User Health Data Center
         </button>
         <button
           onClick={() => handleConnect('researcher')}
@@ -128,7 +129,7 @@ export default function Entry() {
           }}
           onMouseEnter={e => { e.target.style.background = 'rgba(212,165,116,0.1)'; }}
           onMouseLeave={e => { e.target.style.background = 'transparent'; }}>
-          Connect Wallet — I'm a Researcher
+          Connect Wallet — Research Marketplace
         </button>
       </div>
 

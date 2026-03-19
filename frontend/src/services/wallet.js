@@ -9,13 +9,13 @@ export function truncateAddress(addr) {
 }
 
 export async function connectWallet() {
-  if (!window.ethereum) throw new Error('MetaMask not installed');
+  if (!window.ethereum) throw new Error('No wallet found — install MetaMask, Coinbase Wallet, or any EIP-1193 compatible browser wallet');
   const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
   return accounts[0];
 }
 
 export async function getProvider() {
-  if (!window.ethereum) throw new Error('MetaMask not installed');
+  if (!window.ethereum) throw new Error('No wallet found — install MetaMask, Coinbase Wallet, or any EIP-1193 compatible browser wallet');
   return new BrowserProvider(window.ethereum);
 }
 
