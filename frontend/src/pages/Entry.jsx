@@ -35,7 +35,8 @@ export default function Entry() {
       <h1 className="gold-shimmer" style={{
         fontFamily: 'var(--font-display)',
         fontSize: 'clamp(48px, 8vw, 96px)',
-        lineHeight: 1,
+        lineHeight: 1.15,
+        paddingBottom: '4px',
         marginBottom: '16px',
         fontWeight: 400,
       }}>
@@ -49,7 +50,7 @@ export default function Entry() {
         letterSpacing: '0.05em',
         marginBottom: '64px',
       }}>
-        private health cognition → trustworthy public action
+        Private Health Cognition → Trustworthy Public Action
       </p>
 
       {/* Agent Pipeline */}
