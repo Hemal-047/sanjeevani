@@ -2,10 +2,12 @@ import { Link, useLocation } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 
 export default function Nav() {
-  const { wallet, walletShort, role, setRole } = useApp();
+  const { wallet, walletShort, role } = useApp();
   const location = useLocation();
 
   if (location.pathname === '/') return null;
+
+  const modeLabel = role === 'researcher' ? 'Research Marketplace' : 'Health Data Center';
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 h-14 flex items-center justify-between px-6"
@@ -17,36 +19,18 @@ export default function Nav() {
       </Link>
 
       {wallet && (
-        <div className="flex items-center gap-1" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '2px', padding: '2px' }}>
-          <button
-            onClick={() => setRole('patient')}
-            className="px-3 py-1 text-xs transition-all duration-200"
-            style={{
-              fontFamily: 'var(--font-mono)',
-              letterSpacing: '0.05em',
-              background: role === 'patient' ? 'rgba(212,165,116,0.15)' : 'transparent',
-              color: role === 'patient' ? 'var(--color-gold)' : 'var(--color-text-secondary)',
-              border: 'none',
-              borderRadius: '1px',
-              cursor: 'pointer',
-            }}>
-            Patient
-          </button>
-          <button
-            onClick={() => setRole('researcher')}
-            className="px-3 py-1 text-xs transition-all duration-200"
-            style={{
-              fontFamily: 'var(--font-mono)',
-              letterSpacing: '0.05em',
-              background: role === 'researcher' ? 'rgba(212,165,116,0.15)' : 'transparent',
-              color: role === 'researcher' ? 'var(--color-gold)' : 'var(--color-text-secondary)',
-              border: 'none',
-              borderRadius: '1px',
-              cursor: 'pointer',
-            }}>
-            Researcher
-          </button>
-        </div>
+        <span style={{
+          fontFamily: 'var(--font-mono)',
+          fontSize: '11px',
+          letterSpacing: '0.08em',
+          color: 'var(--color-gold)',
+          background: 'rgba(212,165,116,0.1)',
+          border: '1px solid rgba(212,165,116,0.2)',
+          borderRadius: '2px',
+          padding: '4px 12px',
+        }}>
+          {modeLabel}
+        </span>
       )}
 
       {wallet && (

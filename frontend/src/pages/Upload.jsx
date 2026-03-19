@@ -18,6 +18,16 @@ const COMMON_CONDITIONS = [
   'Rheumatoid Arthritis', 'Lupus', 'Sickle Cell Disease', 'Depression',
 ];
 
+function UploadIcon() {
+  return (
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-text-dim)', marginBottom: '12px' }}>
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="17 8 12 3 7 8" />
+      <line x1="12" y1="3" x2="12" y2="15" />
+    </svg>
+  );
+}
+
 export default function Upload() {
   const { uploadedFiles, setUploadedFiles, familyHistory, setFamilyHistory } = useApp();
   const navigate = useNavigate();
@@ -84,17 +94,32 @@ export default function Upload() {
     return `${(bytes / 1048576).toFixed(1)} MB`;
   }
 
+  const hasFiles = uploadedFiles.length > 0;
+
   return (
     <div className="pt-14 h-screen flex flex-col" style={{ maxWidth: '1440px', margin: '0 auto' }}>
-      <div className="flex flex-1 overflow-hidden">
-        {/* Left: Upload Zone (60%) */}
-        <div className="flex-[3] flex flex-col p-6 relative">
+      {/* Descriptor line */}
+      <div style={{
+        padding: '12px 24px 0',
+        fontFamily: 'var(--font-body)',
+        fontSize: '12px',
+        color: 'var(--color-text-secondary)',
+        lineHeight: '1.5',
+      }}>
+        Four AI agents privately analyze your medical records, discover hidden health patterns, and connect you to clinical trials — all without exposing your data.
+      </div>
+
+      <div className="flex flex-1 overflow-hidden" style={{ padding: '16px 24px 0', gap: '4%' }}>
+        {/* Left: Upload Zone (58%) */}
+        <div style={{ width: '58%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
           <div
-            className={`flex-1 relative flex flex-col items-center justify-center cursor-pointer transition-all duration-200 ${dragOver ? 'grid-bg-gold' : 'grid-bg'}`}
+            className={`flex-1 relative flex flex-col items-center justify-center cursor-pointer transition-all duration-200`}
             style={{
-              border: `1px solid ${dragOver ? 'var(--color-gold)' : 'var(--color-border)'}`,
+              border: `1px solid ${dragOver ? 'var(--color-gold)' : 'rgba(255,255,255,0.1)'}`,
               borderRadius: '2px',
+              background: dragOver ? 'rgba(212,165,116,0.03)' : 'transparent',
               transition: 'border-color 0.2s, background 0.2s',
+              overflow: 'hidden',
             }}
             onDragOver={e => { e.preventDefault(); setDragOver(true); }}
             onDragLeave={() => setDragOver(false)}
@@ -110,8 +135,9 @@ export default function Upload() {
               onChange={e => addFiles(e.target.files)}
             />
 
-            {uploadedFiles.length === 0 ? (
+            {!hasFiles ? (
               <div className="text-center">
+                <div className="flex justify-center"><UploadIcon /></div>
                 <p style={{ fontFamily: 'var(--font-mono)', fontSize: '14px', color: 'var(--color-text-secondary)' }}>
                   drop health documents here
                 </p>
@@ -120,7 +146,7 @@ export default function Upload() {
                 </p>
               </div>
             ) : (
-              <div className="w-full px-6 py-4 overflow-y-auto" onClick={e => e.stopPropagation()}>
+              <div className="w-full px-6 py-4 overflow-y-auto" style={{ maxHeight: '100%' }} onClick={e => e.stopPropagation()}>
                 {uploadedFiles.map((file, i) => {
                   const docType = DOC_TYPES[file.type] || { color: '#888', label: '?' };
                   return (
@@ -155,38 +181,64 @@ export default function Upload() {
           </div>
 
           {/* Bottom Sticky Bar */}
-          <div className="mt-4 flex items-center gap-4">
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', color: 'var(--color-text-secondary)' }}>
+          <div className="mt-4 mb-4 flex items-center gap-4" style={{
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px solid var(--color-border)',
+            borderRadius: '2px',
+            padding: '10px 16px',
+          }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', color: hasFiles ? 'var(--color-text)' : 'var(--color-text-secondary)' }}>
               {uploadedFiles.length} document{uploadedFiles.length !== 1 ? 's' : ''}
             </span>
             <button
-              onClick={() => uploadedFiles.length > 0 && navigate('/analyze')}
-              disabled={uploadedFiles.length === 0}
+              onClick={() => hasFiles && navigate('/analyze')}
+              disabled={!hasFiles}
               className="flex-1 py-3 text-center transition-all duration-200"
               style={{
-                background: uploadedFiles.length > 0 ? 'var(--color-gold)' : 'var(--color-surface)',
-                color: uploadedFiles.length > 0 ? '#0A0A0F' : 'var(--color-text-dim)',
+                background: hasFiles ? 'var(--color-gold)' : 'rgba(255,255,255,0.04)',
+                color: hasFiles ? '#0A0A0F' : 'var(--color-text-dim)',
                 fontFamily: 'var(--font-mono)',
                 fontSize: '13px',
                 letterSpacing: '0.15em',
                 fontWeight: 600,
-                border: 'none',
+                border: hasFiles ? 'none' : '1px solid var(--color-border)',
                 borderRadius: '2px',
-                cursor: uploadedFiles.length > 0 ? 'pointer' : 'not-allowed',
+                cursor: hasFiles ? 'pointer' : 'not-allowed',
               }}>
               ANALYZE
             </button>
           </div>
         </div>
 
-        {/* Right: Family History Panel (40%) */}
-        <div className="flex-[2] p-6 overflow-y-auto" style={{ borderLeft: '2px solid var(--color-gold-faint)' }}>
-          <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '2px', padding: '20px' }}>
-            <h3 className="agent-name mb-4" style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>
+        {/* Right: Family History Panel (38%) */}
+        <div style={{
+          width: '38%',
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: 0,
+          borderLeft: '2px solid rgba(212,165,116,0.15)',
+          paddingLeft: '24px',
+        }}>
+          <div style={{
+            background: 'var(--color-surface)',
+            border: '1px solid var(--color-border)',
+            borderRadius: '2px',
+            padding: '20px',
+            overflowY: 'auto',
+            flex: 1,
+            marginBottom: '16px',
+          }}>
+            <h3 className="agent-name" style={{ fontSize: '13px', color: 'var(--color-gold)', marginBottom: '16px' }}>
               FAMILY HISTORY
             </h3>
 
             {/* Existing members */}
+            {familyHistory.members.length === 0 && !showAddMember && (
+              <p style={{ fontFamily: 'var(--font-body)', fontSize: '12px', color: 'var(--color-text-dim)', marginBottom: '12px' }}>
+                No family members added yet. Adding family history helps discover hereditary risk patterns.
+              </p>
+            )}
+
             {familyHistory.members.map((member, i) => (
               <div key={i} className="flex items-start gap-3 py-2 slide-in" style={{ borderBottom: '1px solid var(--color-border)' }}>
                 <div className="flex-1">
@@ -305,11 +357,11 @@ export default function Upload() {
                 </div>
               </div>
             ) : (
-              <button onClick={() => setShowAddMember(true)} className="mt-4 w-full py-2" style={{
-                fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--color-text-secondary)',
-                background: 'none', border: '1px dashed var(--color-border)', borderRadius: '2px', cursor: 'pointer',
+              <button onClick={() => setShowAddMember(true)} className="mt-2 w-full py-2" style={{
+                fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--color-gold)',
+                background: 'none', border: '1px dashed rgba(212,165,116,0.3)', borderRadius: '2px', cursor: 'pointer',
               }}>
-                + add family member
+                + Add Family Member
               </button>
             )}
           </div>

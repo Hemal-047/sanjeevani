@@ -26,11 +26,11 @@ export default function Research() {
 
   // Mock attestations for demo (in production, query from contract)
   const mockAttestations = [
-    { attestationId: 1, conditionCode: 'R73.03', conditionName: 'Pre-diabetes', severity: 'high', confidence: 90, evidenceSummary: 'Fasting glucose 126, HbA1c 6.4%', patientAge: 42 },
-    { attestationId: 2, conditionCode: 'E78.5', conditionName: 'Dyslipidemia', severity: 'high', confidence: 95, evidenceSummary: 'LDL 148, HDL 39, Triglycerides 205', patientAge: 42 },
-    { attestationId: 3, conditionCode: 'E11', conditionName: 'Type 2 Diabetes', severity: 'high', confidence: 95, evidenceSummary: 'HbA1c 7.8%, on metformin + glipizide', patientAge: 51 },
-    { attestationId: 4, conditionCode: 'I10', conditionName: 'Essential Hypertension', severity: 'moderate', confidence: 88, evidenceSummary: 'BP 145/92, on amlodipine', patientAge: 60 },
-    { attestationId: 5, conditionCode: 'R73.03', conditionName: 'Pre-diabetes', severity: 'moderate', confidence: 75, evidenceSummary: 'Fasting glucose 108, single reading', patientAge: 38 },
+    { attestationId: 1, conditionCode: 'R73.03', conditionName: 'Pre-diabetes', severity: 'high', confidence: 90, evidenceSummary: 'Fasting glucose 126, HbA1c 6.4%', userAge: 42 },
+    { attestationId: 2, conditionCode: 'E78.5', conditionName: 'Dyslipidemia', severity: 'high', confidence: 95, evidenceSummary: 'LDL 148, HDL 39, Triglycerides 205', userAge: 42 },
+    { attestationId: 3, conditionCode: 'E11', conditionName: 'Type 2 Diabetes', severity: 'high', confidence: 95, evidenceSummary: 'HbA1c 7.8%, on metformin + glipizide', userAge: 51 },
+    { attestationId: 4, conditionCode: 'I10', conditionName: 'Essential Hypertension', severity: 'moderate', confidence: 88, evidenceSummary: 'BP 145/92, on amlodipine', userAge: 60 },
+    { attestationId: 5, conditionCode: 'R73.03', conditionName: 'Pre-diabetes', severity: 'moderate', confidence: 75, evidenceSummary: 'Fasting glucose 108, single reading', userAge: 38 },
   ];
 
   async function handleSearch() {

@@ -5,7 +5,7 @@ const AppContext = createContext(null);
 
 export function AppProvider({ children }) {
   const [wallet, setWallet] = useState(null);
-  const [role, setRole] = useState(null); // 'patient' | 'researcher'
+  const [role, setRole] = useState(null); // 'user' | 'researcher'
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [familyHistory, setFamilyHistory] = useState({ members: [] });
   const [extractions, setExtractions] = useState([]);

@@ -21,7 +21,7 @@ export default function Entry() {
       await connectWallet(role);
       setPipelineActive(true);
       setTimeout(() => {
-        navigate(role === 'patient' ? '/upload' : '/research');
+        navigate(role === 'user' ? '/upload' : '/research');
       }, 2200);
     } catch (err) {
       console.error(err);
@@ -95,7 +95,7 @@ export default function Entry() {
       {/* Connect Buttons */}
       <div className="flex gap-4" style={{ marginTop: '60px' }}>
         <button
-          onClick={() => handleConnect('patient')}
+          onClick={() => handleConnect('user')}
           disabled={connecting}
           className="px-6 py-3 transition-all duration-200"
           style={{
