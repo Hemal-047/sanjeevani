@@ -201,7 +201,7 @@ function BiomarkerGroup({ title, trends: groupTrends }) {
 export default function Analysis() {
   const {
     uploadedFiles, familyHistory, extractions, setExtractions,
-    bodhiAnalysis, setBodhiAnalysis, setMudraResult,
+    bodhiAnalysis, setBodhiAnalysis, mudraResult, setMudraResult,
     agentLog, addLogEntry,
   } = useApp();
   const navigate = useNavigate();
@@ -348,11 +348,11 @@ export default function Analysis() {
         </div>
 
         {/* ── CENTER: Health Profile ── */}
-        <div className="flex flex-col overflow-y-auto" style={{ borderRight: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="flex flex-col" style={{ borderRight: '1px solid rgba(255,255,255,0.06)', position: 'relative' }}>
           <div style={{ padding: '12px 24px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
             <h3 className="agent-name" style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>HEALTH PROFILE</h3>
           </div>
-          <div style={{ padding: '24px', flex: 1 }}>
+          <div style={{ padding: '24px', paddingBottom: mudraResult ? '100px' : '24px', flex: 1, overflowY: 'auto' }}>
 
             {/* Risk Score */}
             <div className="flex items-center justify-center" style={{ marginBottom: '32px' }}>
@@ -435,22 +435,33 @@ export default function Analysis() {
                 })}
               </div>
             )}
+          </div>
 
-            {/* Proceed Button */}
-            {done && (
+          {/* Sticky Proceed Button — only after Mudra completes */}
+          {mudraResult && (
+            <div style={{
+              position: 'sticky', bottom: 0,
+              background: '#0A0A0F',
+              borderTop: '1px solid rgba(255,255,255,0.06)',
+              padding: '16px 24px',
+            }}>
+              <div style={{
+                position: 'absolute', top: '-24px', left: 0, right: 0, height: '24px',
+                background: 'linear-gradient(to bottom, transparent, #0A0A0F)',
+                pointerEvents: 'none',
+              }} />
               <button
                 onClick={() => navigate('/attest')}
                 className="w-full py-4 transition-all duration-200 slide-up"
                 style={{
-                  marginTop: '24px', animationDelay: '1100ms',
                   background: 'var(--color-gold)', color: '#0A0A0F',
                   fontFamily: 'var(--font-mono)', fontSize: '13px', letterSpacing: '0.15em', fontWeight: 600,
                   border: 'none', borderRadius: '2px', cursor: 'pointer',
                 }}>
                 PROCEED TO ATTESTATION
               </button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* ── RIGHT: Documents + Family History ── */}
@@ -460,9 +471,9 @@ export default function Analysis() {
           </div>
           <div className="flex-1 overflow-y-auto" style={{ padding: '8px 16px' }}>
             {uploadedFiles.map((file, i) => {
-              const ext = extractions.find(e => e.filename === file.name);
-              const processing = running && !ext;
-              const complete = !!ext && !ext.error;
+              const ext = extractions.find(e => e.filename === file.name) || extractions[i];
+              const complete = done || (!!ext && !ext.error);
+              const processing = running && !complete;
               return (
                 <div key={i} className="flex items-center gap-2" style={{ padding: '8px 0', borderBottom: '1px solid var(--color-border)' }}>
                   {complete ? (
