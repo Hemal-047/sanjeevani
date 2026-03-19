@@ -24,7 +24,14 @@ export async function getSigner() {
   return provider.getSigner();
 }
 
+function ensureContractAddress() {
+  if (!CONTRACT_ADDRESS) {
+    throw new Error('Contract not yet deployed. Deploy to Base Sepolia to enable onchain attestations.');
+  }
+}
+
 export async function getContract() {
+  ensureContractAddress();
   const signer = await getSigner();
   return new Contract(CONTRACT_ADDRESS, HealthAttestationABI.abi || HealthAttestationABI, signer);
 }
@@ -45,7 +52,6 @@ export async function revokeAttestation(attestationId) {
 
 export async function sendTrialInvitation(attestationId, studyName, description, compensationEth) {
   const contract = await getContract();
-  // parseEther imported at top
   const tx = await contract.sendTrialInvitation(attestationId, studyName, description, {
     value: parseEther(compensationEth),
   });
@@ -55,7 +61,6 @@ export async function sendTrialInvitation(attestationId, studyName, description,
 
 export async function requestDataPurchase(attestationId, dataRequested, priceEth) {
   const contract = await getContract();
-  // parseEther imported at top
   const tx = await contract.requestDataPurchase(attestationId, dataRequested, {
     value: parseEther(priceEth),
   });

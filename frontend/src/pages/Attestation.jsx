@@ -19,34 +19,47 @@ export default function Attestation() {
   const [publishing, setPublishing] = useState(false);
   const [txHashes, setTxHashes] = useState([]);
   const [stampVisible, setStampVisible] = useState(false);
+  const [publishError, setPublishError] = useState(null);
 
   const attestations = mudraResult?.attestations || [];
   const selectedCount = Object.values(selected).filter(Boolean).length;
 
   async function handlePublish() {
     setPublishing(true);
+    setPublishError(null);
     const hashes = [];
 
-    for (let i = 0; i < attestations.length; i++) {
-      if (!selected[i]) continue;
-      const a = attestations[i];
-      try {
-        const result = await publishAttestation(
-          a.conditionCodeBytes32,
-          a.conditionName,
-          a.severity,
-          a.confidence,
-          a.evidenceHash
-        );
-        hashes.push({ index: i, hash: result.tx.hash, success: true });
-      } catch (err) {
-        hashes.push({ index: i, hash: null, error: err.message, success: false });
+    try {
+      for (let i = 0; i < attestations.length; i++) {
+        if (!selected[i]) continue;
+        const a = attestations[i];
+        try {
+          const result = await publishAttestation(
+            a.conditionCodeBytes32,
+            a.conditionName,
+            a.severity,
+            a.confidence,
+            a.evidenceHash
+          );
+          hashes.push({ index: i, hash: result.tx.hash, success: true });
+        } catch (err) {
+          if (err.message.includes('Contract not yet deployed')) {
+            setPublishError(err.message);
+            setPublishing(false);
+            return;
+          }
+          hashes.push({ index: i, hash: null, error: err.message, success: false });
+        }
       }
+    } catch (err) {
+      setPublishError(err.message);
+      setPublishing(false);
+      return;
     }
 
     setTxHashes(hashes);
     setPublishing(false);
-    setStampVisible(true);
+    if (hashes.some(t => t.success)) setStampVisible(true);
   }
 
   const consentLines = mudraResult?.consentSummary?.split('\n').filter(l => l.startsWith('APPROVED:')) || [];
@@ -54,11 +67,11 @@ export default function Attestation() {
   return (
     <div className="pt-14 min-h-screen" style={{ maxWidth: '800px', margin: '0 auto', padding: '0 24px' }}>
       <div className="py-8">
-        <h2 className="agent-name mb-1" style={{ fontSize: '14px', color: 'var(--color-gold)' }}>
+        <h2 className="agent-name mb-2" style={{ fontSize: '14px', color: 'var(--color-gold)' }}>
           MUDRA — SEAL YOUR CLAIMS
         </h2>
-        <p style={{ fontFamily: 'var(--font-body)', fontSize: '13px', color: 'var(--color-text-secondary)', marginBottom: '32px' }}>
-          Review and publish your health attestations to Base Sepolia
+        <p style={{ fontFamily: 'var(--font-body)', fontSize: '13px', color: 'var(--color-text-secondary)', marginBottom: '32px', lineHeight: '1.6' }}>
+          Review and publish your health attestations onchain. Only selected claims will be visible — no personal data is revealed.
         </p>
 
         {attestations.length === 0 ? (
@@ -121,13 +134,6 @@ export default function Attestation() {
                   </p>
                 )}
 
-                {/* Evidence hash */}
-                <div className="mt-2 flex items-center gap-2">
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: 'var(--color-text-dim)' }}>
-                    evidence: {a.evidenceHash?.slice(0, 18)}...
-                  </span>
-                </div>
-
                 {/* Tx hash if published */}
                 {txHashes.find(t => t.index === i) && (
                   <div className="mt-2">
@@ -168,6 +174,18 @@ export default function Attestation() {
                 {publishing ? 'SEALING...' : 'SEAL & PUBLISH'}
               </button>
             </div>
+
+            {publishError && (
+              <div style={{
+                marginTop: '12px', padding: '12px 16px',
+                background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.15)',
+                borderRadius: '2px',
+              }}>
+                <p style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', color: 'var(--color-amber)' }}>
+                  {publishError}
+                </p>
+              </div>
+            )}
 
             {/* Stamp Animation */}
             {stampVisible && txHashes.some(t => t.success) && (
