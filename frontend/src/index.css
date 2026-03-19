@@ -147,6 +147,17 @@ body {
   animation: slideIn 300ms ease-out forwards;
 }
 
+/* Slide-up for log entries and condition cards */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.slide-up {
+  animation: slideUp 300ms ease-out forwards;
+  opacity: 0;
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 4px;

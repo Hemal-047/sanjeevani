@@ -3,21 +3,31 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { analyzeComprehensive, prepareAttestations } from '../services/api';
 
-function RiskRing({ score, size = 140, stroke = 3 }) {
+function RiskRing({ score, size = 160, stroke = 5 }) {
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (score / 100) * circumference;
+  const [animatedOffset, setAnimatedOffset] = useState(circumference);
   const color = score >= 70 ? 'var(--color-critical)' : score >= 40 ? 'var(--color-amber)' : 'var(--color-emerald)';
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setAnimatedOffset(circumference - (score / 100) * circumference);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [score, circumference]);
 
   return (
     <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="absolute" style={{ transform: 'rotate(-90deg)' }}>
-        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="var(--color-border)" strokeWidth={stroke} />
-        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke={color} strokeWidth={stroke}
-          strokeDasharray={circumference} strokeDashoffset={offset}
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none"
+          stroke="rgba(255,255,255,0.06)" strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none"
+          stroke={color} strokeWidth={stroke}
+          strokeDasharray={circumference} strokeDashoffset={animatedOffset}
+          strokeLinecap="round"
           style={{ transition: 'stroke-dashoffset 1.5s ease-out' }} />
       </svg>
-      <span style={{ fontFamily: 'var(--font-display)', fontSize: '42px', color, lineHeight: 1 }}>
+      <span style={{ fontFamily: 'var(--font-display)', fontSize: '48px', color, lineHeight: 1 }}>
         {score}
       </span>
     </div>
@@ -30,9 +40,9 @@ function Sparkline({ values, direction, concern }) {
   const min = Math.min(...nums);
   const max = Math.max(...nums);
   const range = max - min || 1;
-  const w = 60;
-  const h = 24;
-  const points = nums.map((v, i) => `${(i / (nums.length - 1)) * w},${h - ((v - min) / range) * h}`).join(' ');
+  const w = 80;
+  const h = 30;
+  const points = nums.map((v, i) => `${(i / (nums.length - 1)) * w},${h - ((v - min) / range) * (h - 4) - 2}`).join(' ');
   const color = concern ? 'var(--color-critical)' : 'var(--color-emerald)';
 
   return (
@@ -40,19 +50,37 @@ function Sparkline({ values, direction, concern }) {
       <svg width={w} height={h}>
         <polyline points={points} fill="none" stroke={color} strokeWidth="1.5" />
         {nums.map((v, i) => (
-          <circle key={i} cx={(i / (nums.length - 1)) * w} cy={h - ((v - min) / range) * h} r="2" fill={color} />
+          <circle key={i} cx={(i / (nums.length - 1)) * w} cy={h - ((v - min) / range) * (h - 4) - 2} r="2.5" fill={color} />
         ))}
       </svg>
-      <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color }}>
+      <span style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', color, fontWeight: 600 }}>
         {direction === 'rising' ? '↑' : direction === 'falling' ? '↓' : '→'}
       </span>
     </div>
   );
 }
 
-function SeverityDot({ severity }) {
-  const colors = { low: 'var(--color-emerald)', moderate: 'var(--color-amber)', high: 'var(--color-critical)', critical: '#DC2626' };
-  return <div style={{ width: '6px', height: '6px', borderRadius: '1px', background: colors[severity] || '#888', flexShrink: 0 }} />;
+function SeverityBadge({ severity }) {
+  const config = {
+    low: { color: 'var(--color-emerald)', bg: 'rgba(52,211,153,0.1)', border: 'rgba(52,211,153,0.2)' },
+    moderate: { color: 'var(--color-amber)', bg: 'rgba(251,191,36,0.1)', border: 'rgba(251,191,36,0.2)' },
+    high: { color: 'var(--color-critical)', bg: 'rgba(248,113,113,0.1)', border: 'rgba(248,113,113,0.2)' },
+    critical: { color: '#DC2626', bg: 'rgba(220,38,38,0.1)', border: 'rgba(220,38,38,0.2)' },
+  };
+  const c = config[severity] || config.moderate;
+  return (
+    <span style={{
+      fontFamily: 'var(--font-mono)', fontSize: '9px', letterSpacing: '0.1em',
+      color: c.color, background: c.bg, border: `1px solid ${c.border}`,
+      padding: '2px 8px', borderRadius: '1px', textTransform: 'uppercase',
+    }}>
+      {severity}
+    </span>
+  );
+}
+
+function SkeletonBlock({ width, height, style = {} }) {
+  return <div className="skeleton" style={{ width, height, borderRadius: '2px', ...style }} />;
 }
 
 export default function Analysis() {
@@ -64,7 +92,9 @@ export default function Analysis() {
   const navigate = useNavigate();
   const [running, setRunning] = useState(false);
   const [done, setDone] = useState(false);
+  const [phase, setPhase] = useState('idle'); // idle, drishti, bodhi, mudra, complete
   const logRef = useRef(null);
+  const hasRun = useRef(false);
 
   useEffect(() => {
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
@@ -72,21 +102,22 @@ export default function Analysis() {
 
   useEffect(() => {
     if (uploadedFiles.length === 0) return;
-    if (running || done) return;
+    if (hasRun.current) return;
+    hasRun.current = true;
     runAnalysis();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function runAnalysis() {
     setRunning(true);
+    setPhase('drishti');
 
-    // Log: Drishti starts
     addLogEntry({ agent: 'DRISHTI', action: 'Initializing document intelligence...', type: 'start' });
 
-    uploadedFiles.forEach((f, i) => {
-      setTimeout(() => {
-        addLogEntry({ agent: 'DRISHTI', action: `Reading ${f.name}...`, type: 'progress' });
-      }, i * 300);
-    });
+    // Log each file once
+    for (let i = 0; i < uploadedFiles.length; i++) {
+      await new Promise(r => setTimeout(r, 200));
+      addLogEntry({ agent: 'DRISHTI', action: `Reading ${uploadedFiles[i].name}...`, type: 'progress' });
+    }
 
     try {
       const fh = familyHistory.members.length > 0 ? familyHistory : null;
@@ -96,65 +127,60 @@ export default function Analysis() {
         const exts = result.extractions || [];
         setExtractions(exts);
 
-        exts.forEach(ext => {
-          addLogEntry({
-            agent: 'DRISHTI',
-            action: `Extracted ${ext.findings?.length || 0} findings from ${ext.filename}`,
-            type: 'complete',
-          });
+        addLogEntry({
+          agent: 'DRISHTI',
+          action: `Extracted data from ${exts.length} document${exts.length !== 1 ? 's' : ''}`,
+          type: 'complete',
         });
 
         // Bodhi analysis
         if (result.analysis) {
+          setPhase('bodhi');
           const analysis = result.analysis;
-          setBodhiAnalysis(analysis);
 
+          // Log reasoning chain steps with delays
           if (analysis.reasoningChain) {
-            analysis.reasoningChain.forEach((step, i) => {
-              setTimeout(() => {
-                addLogEntry({
-                  agent: step.step <= 1 ? 'DRISHTI' : 'BODHI',
-                  action: `${step.title}: ${step.summary}`,
-                  type: step.step === analysis.reasoningChain.length ? 'complete' : 'progress',
-                });
-              }, i * 200);
-            });
+            for (let i = 0; i < analysis.reasoningChain.length; i++) {
+              await new Promise(r => setTimeout(r, 300));
+              const step = analysis.reasoningChain[i];
+              addLogEntry({
+                agent: 'BODHI',
+                action: `${step.title}: ${step.summary}`,
+                type: i === analysis.reasoningChain.length - 1 ? 'complete' : 'progress',
+              });
+            }
           }
+
+          setBodhiAnalysis(analysis);
 
           // Prepare Mudra attestations
           if (analysis.synthesis) {
-            setTimeout(async () => {
-              addLogEntry({ agent: 'MUDRA', action: 'Preparing onchain attestations...', type: 'start' });
-              try {
-                const mudra = await prepareAttestations(analysis);
-                if (mudra.success && mudra.data) {
-                  setMudraResult(mudra.data);
-                  addLogEntry({
-                    agent: 'MUDRA',
-                    action: `${mudra.data.approvedCount} attestations ready for publishing`,
-                    type: 'complete',
-                  });
-                }
-              } catch {
-                addLogEntry({ agent: 'MUDRA', action: 'Attestation preparation deferred', type: 'complete' });
+            setPhase('mudra');
+            addLogEntry({ agent: 'MUDRA', action: 'Preparing onchain attestations...', type: 'start' });
+            try {
+              const mudra = await prepareAttestations(analysis);
+              if (mudra.success && mudra.data) {
+                setMudraResult(mudra.data);
+                addLogEntry({
+                  agent: 'MUDRA',
+                  action: `${mudra.data.approvedCount} attestations ready for publishing`,
+                  type: 'complete',
+                });
               }
-              setDone(true);
-            }, 500);
-          } else {
-            setDone(true);
+            } catch {
+              addLogEntry({ agent: 'MUDRA', action: 'Attestation preparation deferred', type: 'complete' });
+            }
           }
-        } else {
-          setDone(true);
         }
       } else {
         addLogEntry({ agent: 'SYSTEM', action: 'Analysis failed — check uploaded files', type: 'error' });
-        setDone(true);
       }
     } catch (err) {
       addLogEntry({ agent: 'SYSTEM', action: `Error: ${err.message}`, type: 'error' });
-      setDone(true);
     }
 
+    setPhase('complete');
+    setDone(true);
     setRunning(false);
   }
 
@@ -163,193 +189,227 @@ export default function Analysis() {
   const trends = synthesis.trends || [];
   const drugInteractions = synthesis.drugInteractions || [];
   const medications = extractions.flatMap(e => e.medications || []);
+  const hasScore = synthesis.overallRiskScore != null;
+  const hasConditions = conditions.length > 0;
+  const hasTrends = trends.length > 0;
+  const hasMeds = medications.length > 0;
 
   return (
-    <div className="pt-14 h-screen flex" style={{ maxWidth: '1440px', margin: '0 auto' }}>
-      {/* LEFT: Agent Log (25%) */}
-      <div className="w-1/4 flex flex-col" style={{ borderRight: '1px solid var(--color-border)' }}>
-        <div className="px-4 py-3" style={{ borderBottom: '1px solid var(--color-border)' }}>
-          <h3 className="agent-name" style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>AGENT LOG</h3>
-        </div>
-        <div ref={logRef} className="flex-1 overflow-y-auto px-4 py-2" style={{ fontFamily: 'var(--font-mono)', fontSize: '11px' }}>
-          {agentLog.map((entry, i) => {
-            const prevAgent = i > 0 ? agentLog[i - 1].agent : null;
-            const showSeparator = prevAgent && prevAgent !== entry.agent;
-            return (
-              <div key={i}>
-                {showSeparator && (
-                  <div className="flex items-center gap-2 my-3">
-                    <div className="flex-1" style={{ height: '1px', background: 'var(--color-border)' }} />
-                    <span style={{ color: 'var(--color-gold)', fontSize: '10px', letterSpacing: '0.15em' }}>{entry.agent}</span>
-                    <div className="flex-1" style={{ height: '1px', background: 'var(--color-border)' }} />
-                  </div>
-                )}
-                <div className="py-1 slide-in" style={{ animationDelay: `${i * 50}ms` }}>
-                  <div className="flex items-start gap-2">
-                    {entry.type === 'progress' || entry.type === 'start' ? (
-                      <span className="pulse-gold" style={{ color: 'var(--color-gold)', fontSize: '8px', marginTop: '3px' }}>●</span>
-                    ) : entry.type === 'complete' ? (
-                      <span style={{ color: 'var(--color-emerald)', fontSize: '8px', marginTop: '3px' }}>●</span>
-                    ) : (
-                      <span style={{ color: 'var(--color-critical)', fontSize: '8px', marginTop: '3px' }}>●</span>
-                    )}
-                    <div className="flex-1">
-                      <span style={{ color: 'var(--color-text-dim)', marginRight: '6px' }}>
-                        {new Date(entry.timestamp).toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                      </span>
-                      <span style={{ color: 'var(--color-gold)' }}>{entry.agent}</span>
-                      <div style={{ color: entry.type === 'complete' ? 'var(--color-emerald)' : entry.type === 'error' ? 'var(--color-critical)' : 'var(--color-text-secondary)', marginTop: '2px' }}>
-                        {entry.action}
+    <div className="pt-14 h-screen" style={{ maxWidth: '1440px', margin: '0 auto' }}>
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr 2fr 1fr',
+        gap: '0',
+        height: 'calc(100vh - 56px)',
+      }}>
+        {/* LEFT: Agent Log (25%) */}
+        <div className="flex flex-col" style={{ borderRight: '1px solid var(--color-border)' }}>
+          <div className="px-4 py-3" style={{ borderBottom: '1px solid var(--color-border)' }}>
+            <h3 className="agent-name" style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>AGENT LOG</h3>
+          </div>
+          <div ref={logRef} className="flex-1 overflow-y-auto px-4 py-2" style={{ fontFamily: 'var(--font-mono)', fontSize: '11px' }}>
+            {agentLog.map((entry, i) => {
+              const prevAgent = i > 0 ? agentLog[i - 1].agent : null;
+              const showSeparator = prevAgent && prevAgent !== entry.agent;
+              const isActive = running && i === agentLog.length - 1 && entry.type !== 'complete';
+              return (
+                <div key={i}>
+                  {showSeparator && (
+                    <div className="flex items-center gap-2 my-3">
+                      <div className="flex-1" style={{ height: '1px', background: 'var(--color-border)' }} />
+                      <span style={{ color: 'var(--color-gold)', fontSize: '10px', letterSpacing: '0.15em' }}>{entry.agent}</span>
+                      <div className="flex-1" style={{ height: '1px', background: 'var(--color-border)' }} />
+                    </div>
+                  )}
+                  <div className="py-1 slide-up" style={{ animationDelay: `${i * 80}ms` }}>
+                    <div className="flex items-start gap-2">
+                      {entry.type === 'complete' ? (
+                        <span style={{ color: 'var(--color-emerald)', fontSize: '8px', marginTop: '3px' }}>●</span>
+                      ) : entry.type === 'error' ? (
+                        <span style={{ color: 'var(--color-critical)', fontSize: '8px', marginTop: '3px' }}>●</span>
+                      ) : (
+                        <span className={isActive ? 'pulse-gold' : ''} style={{ color: 'var(--color-gold)', fontSize: '8px', marginTop: '3px' }}>●</span>
+                      )}
+                      <div className="flex-1" style={{ minWidth: 0 }}>
+                        <span style={{ color: 'var(--color-text-dim)', marginRight: '6px' }}>
+                          {new Date(entry.timestamp).toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                        </span>
+                        <span style={{ color: 'var(--color-gold)' }}>{entry.agent}</span>
+                        <div style={{ color: entry.type === 'complete' ? 'var(--color-emerald)' : entry.type === 'error' ? 'var(--color-critical)' : 'var(--color-text-secondary)', marginTop: '2px', wordBreak: 'break-word' }}>
+                          {entry.action}
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
+              );
+            })}
+            {running && (
+              <div className="py-2">
+                <span className="pulse-gold" style={{ color: 'var(--color-gold)' }}>● processing...</span>
               </div>
-            );
-          })}
-          {running && (
-            <div className="py-2">
-              <span className="pulse-gold" style={{ color: 'var(--color-gold)' }}>● processing...</span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* CENTER: Health Profile (50%) */}
-      <div className="w-1/2 flex flex-col overflow-y-auto" style={{ borderRight: '1px solid var(--color-border)' }}>
-        <div className="px-6 py-3" style={{ borderBottom: '1px solid var(--color-border)' }}>
-          <h3 className="agent-name" style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>HEALTH PROFILE</h3>
-        </div>
-        <div className="px-6 py-6 flex-1">
-          {/* Risk Score */}
-          <div className="flex items-center justify-center mb-8">
-            {synthesis.overallRiskScore != null ? (
-              <RiskRing score={synthesis.overallRiskScore} />
-            ) : (
-              <div className="skeleton" style={{ width: '140px', height: '140px', borderRadius: '70px' }} />
             )}
           </div>
+        </div>
 
-          {/* Conditions */}
-          {conditions.length > 0 && (
-            <div className="mb-8">
-              <h4 className="agent-name mb-3" style={{ fontSize: '10px', color: 'var(--color-text-dim)' }}>CONDITIONS DETECTED</h4>
-              {conditions.map((c, i) => (
-                <div key={i} className="flex items-center gap-3 py-2 slide-in" style={{ borderBottom: '1px solid var(--color-border)', animationDelay: `${i * 150}ms` }}>
-                  <SeverityDot severity={c.severity} />
-                  <span style={{ fontFamily: 'var(--font-body)', fontSize: '13px', flex: 1 }}>{c.name}</span>
-                  <div className="flex items-center gap-2" style={{ minWidth: '120px' }}>
-                    <div className="flex-1" style={{ height: '2px', background: 'var(--color-border)', position: 'relative', borderRadius: '1px' }}>
-                      <div style={{
-                        position: 'absolute', top: 0, left: 0, height: '100%',
-                        width: `${c.confidence}%`, borderRadius: '1px',
-                        background: c.severity === 'critical' ? '#DC2626' : c.severity === 'high' ? 'var(--color-critical)' : c.severity === 'moderate' ? 'var(--color-amber)' : 'var(--color-emerald)',
-                        transition: 'width 1s ease-out',
-                      }} />
+        {/* CENTER: Health Profile (50%) */}
+        <div className="flex flex-col overflow-y-auto" style={{ borderRight: '1px solid var(--color-border)' }}>
+          <div className="px-6 py-3" style={{ borderBottom: '1px solid var(--color-border)' }}>
+            <h3 className="agent-name" style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>HEALTH PROFILE</h3>
+          </div>
+          <div className="px-6 py-6 flex-1">
+            {/* Risk Score */}
+            <div className="flex items-center justify-center mb-8">
+              {hasScore ? (
+                <div className="slide-up" style={{ animationDelay: '0ms' }}>
+                  <RiskRing score={synthesis.overallRiskScore} />
+                  <p style={{ textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--color-text-dim)', marginTop: '8px', letterSpacing: '0.1em' }}>
+                    RISK SCORE
+                  </p>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-2">
+                  <SkeletonBlock width="160px" height="160px" style={{ borderRadius: '80px' }} />
+                  <SkeletonBlock width="80px" height="12px" />
+                </div>
+              )}
+            </div>
+
+            {/* Conditions */}
+            {hasConditions ? (
+              <div className="mb-8 slide-up" style={{ animationDelay: '200ms' }}>
+                <h4 className="agent-name mb-3" style={{ fontSize: '10px', color: 'var(--color-text-dim)' }}>CONDITIONS DETECTED</h4>
+                {conditions.map((c, i) => (
+                  <div key={i} className="flex items-center gap-3 py-3 slide-up"
+                    style={{ borderBottom: '1px solid var(--color-border)', animationDelay: `${300 + i * 150}ms` }}>
+                    <span style={{ fontFamily: 'var(--font-body)', fontSize: '13px', color: 'var(--color-text)', flex: 1 }}>{c.name}</span>
+                    <div className="flex items-center gap-3" style={{ minWidth: '180px' }}>
+                      <div style={{ flex: 1, height: '3px', background: 'rgba(255,255,255,0.06)', position: 'relative', borderRadius: '2px' }}>
+                        <div style={{
+                          position: 'absolute', top: 0, left: 0, height: '100%',
+                          width: `${c.confidence}%`, borderRadius: '2px',
+                          background: c.severity === 'critical' ? '#DC2626' : c.severity === 'high' ? 'var(--color-critical)' : c.severity === 'moderate' ? 'var(--color-amber)' : 'var(--color-emerald)',
+                          transition: 'width 1s ease-out',
+                        }} />
+                      </div>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--color-text-secondary)', minWidth: '32px', textAlign: 'right' }}>
+                        {c.confidence}%
+                      </span>
+                      <SeverityBadge severity={c.severity} />
                     </div>
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--color-text-secondary)', minWidth: '32px', textAlign: 'right' }}>
-                      {c.confidence}%
+                  </div>
+                ))}
+              </div>
+            ) : !done && (
+              <div className="mb-8">
+                <SkeletonBlock width="140px" height="12px" style={{ marginBottom: '16px' }} />
+                {[1, 2, 3].map(i => (
+                  <SkeletonBlock key={i} width="100%" height="40px" style={{ marginBottom: '8px' }} />
+                ))}
+              </div>
+            )}
+
+            {/* Trends */}
+            {hasTrends ? (
+              <div className="mb-8 slide-up" style={{ animationDelay: '600ms' }}>
+                <h4 className="agent-name mb-3" style={{ fontSize: '10px', color: 'var(--color-text-dim)' }}>BIOMARKER TRENDS</h4>
+                {trends.map((t, i) => (
+                  <div key={i} className="flex items-center gap-3 py-3 slide-up" style={{ borderBottom: '1px solid var(--color-border)', animationDelay: `${700 + i * 100}ms` }}>
+                    <span style={{ fontFamily: 'var(--font-body)', fontSize: '13px', color: 'var(--color-text)', flex: 1 }}>{t.biomarker}</span>
+                    <Sparkline values={t.values} direction={t.direction} concern={t.concern} />
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--color-text-dim)', minWidth: '70px', textAlign: 'right' }}>
+                      {t.values?.join(' → ')}
                     </span>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            ) : !done && (
+              <div className="mb-8">
+                <SkeletonBlock width="120px" height="12px" style={{ marginBottom: '16px' }} />
+                {[1, 2].map(i => (
+                  <SkeletonBlock key={i} width="100%" height="36px" style={{ marginBottom: '8px' }} />
+                ))}
+              </div>
+            )}
 
-          {/* Trends */}
-          {trends.length > 0 && (
-            <div className="mb-8">
-              <h4 className="agent-name mb-3" style={{ fontSize: '10px', color: 'var(--color-text-dim)' }}>BIOMARKER TRENDS</h4>
-              {trends.map((t, i) => (
-                <div key={i} className="flex items-center gap-3 py-2" style={{ borderBottom: '1px solid var(--color-border)' }}>
-                  <span style={{ fontFamily: 'var(--font-body)', fontSize: '13px', flex: 1 }}>{t.biomarker}</span>
-                  <Sparkline values={t.values} direction={t.direction} concern={t.concern} />
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--color-text-dim)', minWidth: '60px', textAlign: 'right' }}>
-                    {t.values?.join(' → ')}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
+            {/* Medications & Interactions */}
+            {hasMeds && (
+              <div className="mb-8 slide-up" style={{ animationDelay: '900ms' }}>
+                <h4 className="agent-name mb-3" style={{ fontSize: '10px', color: 'var(--color-text-dim)' }}>MEDICATIONS</h4>
+                {medications.map((m, i) => {
+                  const hasInteraction = drugInteractions.some(d =>
+                    d.drugs?.includes(m.name) || d.description?.includes(m.name)
+                  );
+                  return (
+                    <div key={i} className="flex items-center gap-3 py-2" style={{
+                      borderBottom: '1px solid var(--color-border)',
+                      background: hasInteraction ? 'rgba(251,191,36,0.04)' : 'transparent',
+                    }}>
+                      {hasInteraction && <span style={{ fontSize: '10px', color: 'var(--color-amber)' }}>⚠</span>}
+                      <span style={{ fontFamily: 'var(--font-body)', fontSize: '13px', flex: 1 }}>{m.name}</span>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--color-text-secondary)' }}>
+                        {m.dosage} · {m.frequency}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
 
-          {/* Medications & Interactions */}
-          {medications.length > 0 && (
-            <div className="mb-8">
-              <h4 className="agent-name mb-3" style={{ fontSize: '10px', color: 'var(--color-text-dim)' }}>MEDICATIONS</h4>
-              {medications.map((m, i) => {
-                const hasInteraction = drugInteractions.some(d =>
-                  d.drugs?.includes(m.name) || d.description?.includes(m.name)
-                );
-                return (
-                  <div key={i} className="flex items-center gap-3 py-2" style={{
-                    borderBottom: '1px solid var(--color-border)',
-                    background: hasInteraction ? 'rgba(251,191,36,0.04)' : 'transparent',
-                  }}>
-                    {hasInteraction && <span style={{ fontSize: '10px', color: 'var(--color-amber)' }}>⚠</span>}
-                    <span style={{ fontFamily: 'var(--font-body)', fontSize: '13px', flex: 1 }}>{m.name}</span>
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--color-text-secondary)' }}>
-                      {m.dosage} · {m.frequency}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          {done && (
-            <div className="flex gap-3 mt-8">
+            {/* Proceed Button — only after analysis complete */}
+            {done && (
               <button
                 onClick={() => navigate('/attest')}
-                className="flex-1 py-3 transition-all duration-200"
+                className="w-full py-4 mt-4 transition-all duration-200 slide-up"
                 style={{
+                  animationDelay: '1100ms',
                   background: 'var(--color-gold)', color: '#0A0A0F',
-                  fontFamily: 'var(--font-mono)', fontSize: '12px', letterSpacing: '0.15em', fontWeight: 600,
+                  fontFamily: 'var(--font-mono)', fontSize: '13px', letterSpacing: '0.15em', fontWeight: 600,
                   border: 'none', borderRadius: '2px', cursor: 'pointer',
                 }}>
                 PROCEED TO ATTESTATION
               </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* RIGHT: Documents (25%) */}
-      <div className="w-1/4 flex flex-col">
-        <div className="px-4 py-3" style={{ borderBottom: '1px solid var(--color-border)' }}>
-          <h3 className="agent-name" style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>DOCUMENTS</h3>
-        </div>
-        <div className="flex-1 overflow-y-auto px-4 py-2">
-          {uploadedFiles.map((file, i) => {
-            const ext = extractions.find(e => e.filename === file.name);
-            const processing = running && !ext;
-            const complete = !!ext && !ext.error;
-            return (
-              <div key={i} className="flex items-center gap-2 py-2" style={{ borderBottom: '1px solid var(--color-border)' }}>
-                <div style={{
-                  width: '6px', height: '6px', borderRadius: '1px', flexShrink: 0,
-                  background: complete ? 'var(--color-emerald)' : processing ? 'var(--color-gold)' : 'var(--color-text-dim)',
-                  boxShadow: processing ? '0 0 6px var(--color-gold)' : 'none',
-                }} className={processing ? 'pulse-gold' : ''} />
-                <span style={{ fontFamily: 'var(--font-body)', fontSize: '12px', color: 'var(--color-text)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {file.name}
-                </span>
-                {complete && <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--color-emerald)' }}>✓</span>}
-              </div>
-            );
-          })}
-
-          {/* Family History Summary */}
-          {familyHistory.members.length > 0 && (
-            <div className="mt-6">
-              <h4 className="agent-name mb-2" style={{ fontSize: '10px', color: 'var(--color-text-dim)' }}>FAMILY HISTORY</h4>
-              {familyHistory.members.map((m, i) => (
-                <div key={i} style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>
-                  {m.relation}: {m.conditions.join(', ')}
+        {/* RIGHT: Documents (25%) */}
+        <div className="flex flex-col">
+          <div className="px-4 py-3" style={{ borderBottom: '1px solid var(--color-border)' }}>
+            <h3 className="agent-name" style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>DOCUMENTS</h3>
+          </div>
+          <div className="flex-1 overflow-y-auto px-4 py-2">
+            {uploadedFiles.map((file, i) => {
+              const ext = extractions.find(e => e.filename === file.name);
+              const processing = running && !ext;
+              const complete = !!ext && !ext.error;
+              return (
+                <div key={i} className="flex items-center gap-2 py-2" style={{ borderBottom: '1px solid var(--color-border)' }}>
+                  <div style={{
+                    width: '6px', height: '6px', borderRadius: '1px', flexShrink: 0,
+                    background: complete ? 'var(--color-emerald)' : processing ? 'var(--color-gold)' : 'var(--color-text-dim)',
+                    boxShadow: processing ? '0 0 6px var(--color-gold)' : 'none',
+                  }} className={processing ? 'pulse-gold' : ''} />
+                  <span style={{ fontFamily: 'var(--font-body)', fontSize: '12px', color: 'var(--color-text)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {file.name}
+                  </span>
+                  {complete && <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--color-emerald)' }}>✓</span>}
                 </div>
-              ))}
-            </div>
-          )}
+              );
+            })}
+
+            {/* Family History Summary */}
+            {familyHistory.members.length > 0 && (
+              <div className="mt-6">
+                <h4 className="agent-name mb-2" style={{ fontSize: '10px', color: 'var(--color-text-dim)' }}>FAMILY HISTORY</h4>
+                {familyHistory.members.map((m, i) => (
+                  <div key={i} style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>
+                    {m.relation}: {m.conditions.join(', ')}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
