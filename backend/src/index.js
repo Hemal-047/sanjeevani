@@ -10,14 +10,20 @@ const agentRoutes = require('./routes/agents');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// CORS: configurable via CORS_ORIGIN env var, falls back to localhost + permissive for deployment
-const corsOrigin = process.env.CORS_ORIGIN
-  ? process.env.CORS_ORIGIN.split(',').map(s => s.trim())
-  : ['http://localhost:5173', 'http://127.0.0.1:5173'];
-app.use(cors({
-  origin: process.env.CORS_ORIGIN === '*' ? '*' : corsOrigin,
-  credentials: process.env.CORS_ORIGIN !== '*',
-}));
+// CORS: explicit allowlist for Vercel frontend + localhost dev
+const corsOptions = {
+  origin: [
+    'https://sanjeevani-peach.vercel.app',
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    ...(process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',').map(s => s.trim()) : []),
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+};
+app.options('*', cors(corsOptions)); // preflight
+app.use(cors(corsOptions));
 app.use(express.json());
 
 app.get('/api/health', (req, res) => {
