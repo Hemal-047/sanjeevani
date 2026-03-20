@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
-import { analyzeStream, prepareAttestations } from '../services/api';
+import { analyzeComprehensive, prepareAttestations } from '../services/api';
 
 /* ── Biomarker grouping ── */
 const BIOMARKER_GROUPS = {
@@ -207,7 +207,6 @@ export default function Analysis() {
   const navigate = useNavigate();
   const [running, setRunning] = useState(false);
   const [done, setDone] = useState(false);
-  const [docStatus, setDocStatus] = useState({}); // filename -> 'processing' | 'complete' | 'error'
   const logRef = useRef(null);
   const hasRun = useRef(false);
 
@@ -219,77 +218,68 @@ export default function Analysis() {
     if (uploadedFiles.length === 0) return;
     if (hasRun.current) return;
     hasRun.current = true;
-    runStreamingAnalysis();
+    runAnalysis();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  function runStreamingAnalysis() {
+  async function runAnalysis() {
     setRunning(true);
     addLogEntry({ agent: 'DRISHTI', action: 'Initializing document intelligence...', type: 'start' });
 
-    const fh = familyHistory.members.length > 0 ? familyHistory : null;
+    for (let i = 0; i < uploadedFiles.length; i++) {
+      await new Promise(r => setTimeout(r, 200));
+      addLogEntry({ agent: 'DRISHTI', action: `Reading ${uploadedFiles[i].name}...`, type: 'progress' });
+    }
 
-    analyzeStream(uploadedFiles, fh, {
-      onDrishtiStart: ({ total }) => {
-        addLogEntry({ agent: 'DRISHTI', action: `Processing ${total} document${total !== 1 ? 's' : ''} in parallel...`, type: 'progress' });
-      },
+    try {
+      const fh = familyHistory.members.length > 0 ? familyHistory : null;
+      const result = await analyzeComprehensive(uploadedFiles, fh);
 
-      onDrishtiProgress: ({ filename, status }) => {
-        setDocStatus(prev => ({ ...prev, [filename]: status }));
-        if (status === 'processing') {
-          addLogEntry({ agent: 'DRISHTI', action: `Reading ${filename}...`, type: 'progress' });
-        } else if (status === 'complete') {
-          addLogEntry({ agent: 'DRISHTI', action: `Extracted data from ${filename}`, type: 'complete' });
-        } else if (status === 'error') {
-          addLogEntry({ agent: 'DRISHTI', action: `Failed to process ${filename}`, type: 'error' });
-        }
-      },
-
-      onDrishtiComplete: ({ extractions: exts, successful }) => {
+      if (result.success || result.extractions) {
+        const exts = result.extractions || [];
         setExtractions(exts);
-        // Mark all as complete
-        const statusMap = {};
-        exts.forEach(e => { statusMap[e.filename] = e.error ? 'error' : 'complete'; });
-        setDocStatus(statusMap);
-        addLogEntry({ agent: 'DRISHTI', action: `Completed — ${successful} document${successful !== 1 ? 's' : ''} extracted`, type: 'complete' });
-      },
+        addLogEntry({ agent: 'DRISHTI', action: `Extracted data from ${exts.length} document${exts.length !== 1 ? 's' : ''}`, type: 'complete' });
 
-      onBodhiStart: () => {
-        addLogEntry({ agent: 'BODHI', action: 'Starting cross-reference analysis...', type: 'start' });
-      },
+        if (result.analysis) {
+          const analysis = result.analysis;
+          if (analysis.reasoningChain) {
+            for (let i = 0; i < analysis.reasoningChain.length; i++) {
+              await new Promise(r => setTimeout(r, 300));
+              const step = analysis.reasoningChain[i];
+              addLogEntry({
+                agent: 'BODHI',
+                action: `${step.title}: ${step.summary}`,
+                type: i === analysis.reasoningChain.length - 1 ? 'complete' : 'progress',
+              });
+            }
+          }
+          setBodhiAnalysis(analysis);
 
-      onBodhiStep: ({ step, title, summary }) => {
-        addLogEntry({ agent: 'BODHI', action: `${title}: ${summary}`, type: 'progress' });
-      },
-
-      onBodhiComplete: (data) => {
-        setBodhiAnalysis(data);
-        addLogEntry({ agent: 'BODHI', action: 'Cross-reference analysis complete', type: 'complete' });
-      },
-
-      onMudraStart: () => {
-        addLogEntry({ agent: 'MUDRA', action: 'Preparing onchain attestations...', type: 'start' });
-      },
-
-      onMudraComplete: (data) => {
-        if (data.success) {
-          setMudraResult(data);
-          addLogEntry({ agent: 'MUDRA', action: `${data.approvedCount} attestation${data.approvedCount !== 1 ? 's' : ''} ready for publishing`, type: 'complete' });
-        } else {
-          addLogEntry({ agent: 'MUDRA', action: 'Attestation preparation deferred', type: 'complete' });
+          // Use Mudra result from comprehensive response if available
+          if (result.mudra && result.mudra.success) {
+            setMudraResult(result.mudra);
+            addLogEntry({ agent: 'MUDRA', action: `${result.mudra.approvedCount} attestations ready for publishing`, type: 'complete' });
+          } else if (analysis.synthesis) {
+            addLogEntry({ agent: 'MUDRA', action: 'Preparing onchain attestations...', type: 'start' });
+            try {
+              const mudra = await prepareAttestations(analysis);
+              if (mudra.success && mudra.data) {
+                setMudraResult(mudra.data);
+                addLogEntry({ agent: 'MUDRA', action: `${mudra.data.approvedCount} attestations ready for publishing`, type: 'complete' });
+              }
+            } catch {
+              addLogEntry({ agent: 'MUDRA', action: 'Attestation preparation deferred', type: 'complete' });
+            }
+          }
         }
-      },
+      } else {
+        addLogEntry({ agent: 'SYSTEM', action: 'Analysis failed — check uploaded files', type: 'error' });
+      }
+    } catch (err) {
+      addLogEntry({ agent: 'SYSTEM', action: `Error: ${err.message}`, type: 'error' });
+    }
 
-      onDone: () => {
-        setDone(true);
-        setRunning(false);
-      },
-
-      onError: ({ message }) => {
-        addLogEntry({ agent: 'SYSTEM', action: `Error: ${message}`, type: 'error' });
-        setDone(true);
-        setRunning(false);
-      },
-    });
+    setDone(true);
+    setRunning(false);
   }
 
   const synthesis = bodhiAnalysis?.synthesis || {};
@@ -485,12 +475,12 @@ export default function Analysis() {
           </div>
           <div className="flex-1 overflow-y-auto" style={{ padding: '8px 16px' }}>
             {uploadedFiles.map((file, i) => {
-              const status = docStatus[file.name] || (done ? 'complete' : null);
-              const isComplete = status === 'complete' || done;
-              const isProcessing = status === 'processing' && running;
+              const ext = extractions.find(e => e.filename === file.name) || extractions[i];
+              const complete = done || (!!ext && !ext.error);
+              const processing = running && !complete;
               return (
                 <div key={i} className="flex items-center gap-2" style={{ padding: '8px 0', borderBottom: '1px solid var(--color-border)' }}>
-                  {isComplete ? (
+                  {complete ? (
                     <svg width="14" height="14" viewBox="0 0 14 14" style={{ flexShrink: 0 }}>
                       <circle cx="7" cy="7" r="6" fill="none" stroke="var(--color-emerald)" strokeWidth="1.5" />
                       <path d="M4 7l2 2 4-4" fill="none" stroke="var(--color-emerald)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -498,9 +488,9 @@ export default function Analysis() {
                   ) : (
                     <div style={{
                       width: '6px', height: '6px', borderRadius: '1px', flexShrink: 0,
-                      background: isProcessing ? 'var(--color-gold)' : 'var(--color-text-dim)',
-                      boxShadow: isProcessing ? '0 0 6px var(--color-gold)' : 'none',
-                    }} className={isProcessing ? 'pulse-gold' : ''} />
+                      background: processing ? 'var(--color-gold)' : 'var(--color-text-dim)',
+                      boxShadow: processing ? '0 0 6px var(--color-gold)' : 'none',
+                    }} className={processing ? 'pulse-gold' : ''} />
                   )}
                   <span style={{ fontFamily: 'var(--font-body)', fontSize: '12px', color: 'var(--color-text)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {file.name}

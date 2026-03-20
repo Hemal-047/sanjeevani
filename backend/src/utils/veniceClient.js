@@ -27,6 +27,7 @@ async function chatCompletion(messages, { model = TEXT_MODEL, temperature = 0.2,
 
   if (!res.ok) {
     const body = await res.text();
+    console.error(`[VENICE] API error ${res.status} for model ${model}:`, body);
     throw new Error(`Venice API error ${res.status}: ${body}`);
   }
 
