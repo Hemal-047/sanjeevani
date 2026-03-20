@@ -209,6 +209,99 @@ function BiomarkerGroup({ title, trends: groupTrends }) {
   );
 }
 
+/* ── BODHI Health Watch ── */
+function BodhiHealthWatch({ conditions, trends }) {
+  const [watchActive, setWatchActive] = useState(false);
+  const [alert, setAlert] = useState(null);
+  const alertTimer = useRef(null);
+
+  useEffect(() => {
+    if (!watchActive) {
+      setAlert(null);
+      if (alertTimer.current) clearTimeout(alertTimer.current);
+      return;
+    }
+    // Simulate autonomous alert after 10s based on actual analysis data
+    alertTimer.current = setTimeout(() => {
+      const highRiskCondition = conditions.find(c => c.severity === 'high' || c.severity === 'critical');
+      const risingTrend = trends.find(t => t.direction === 'rising' && t.concern);
+      if (highRiskCondition || risingTrend) {
+        setAlert({
+          type: 'warning',
+          title: 'BODHI ALERT',
+          message: highRiskCondition
+            ? `Monitoring ${highRiskCondition.name} — elevated risk pattern detected. Consider follow-up testing.`
+            : `Rising trend in ${risingTrend.biomarker} — continued monitoring recommended.`,
+          timestamp: new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        });
+      } else {
+        setAlert({
+          type: 'info',
+          title: 'BODHI STATUS',
+          message: 'All monitored biomarkers within expected ranges. No action required.',
+          timestamp: new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        });
+      }
+    }, 10000);
+    return () => clearTimeout(alertTimer.current);
+  }, [watchActive, conditions, trends]);
+
+  return (
+    <div className="slide-up" style={{
+      marginBottom: '32px', animationDelay: '1100ms',
+      background: 'var(--color-surface)',
+      border: `1px solid ${watchActive ? 'var(--color-gold)' : 'var(--color-border)'}`,
+      borderRadius: '2px', padding: '16px',
+    }}>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-3">
+          <h4 className="agent-name" style={{ fontSize: '10px', color: 'var(--color-gold)', margin: 0 }}>BODHI HEALTH WATCH</h4>
+          {watchActive && (
+            <span className="pulse-gold" style={{
+              width: '6px', height: '6px', borderRadius: '50%', background: 'var(--color-gold)',
+              display: 'inline-block',
+            }} />
+          )}
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: 'var(--color-text-dim)', letterSpacing: '0.1em' }}>
+            AUTONOMOUS MONITORING
+          </span>
+        </div>
+        <div className={`toggle-track ${watchActive ? 'active' : ''}`} onClick={() => setWatchActive(!watchActive)} style={{ cursor: 'pointer' }}>
+          <div className="toggle-thumb" />
+        </div>
+      </div>
+      <p style={{ fontFamily: 'var(--font-body)', fontSize: '11px', color: 'var(--color-text-dim)', margin: 0, lineHeight: '1.5' }}>
+        {watchActive
+          ? `Bodhi is monitoring ${conditions.length} condition${conditions.length !== 1 ? 's' : ''} and ${trends.length} biomarker trend${trends.length !== 1 ? 's' : ''}.`
+          : 'Enable to let BODHI autonomously monitor your health patterns and alert on changes.'}
+      </p>
+      {alert && (
+        <div className="slide-up" style={{
+          marginTop: '12px', padding: '12px',
+          background: alert.type === 'warning' ? 'rgba(251,191,36,0.06)' : 'rgba(16,185,129,0.06)',
+          border: `1px solid ${alert.type === 'warning' ? 'rgba(251,191,36,0.2)' : 'rgba(16,185,129,0.2)'}`,
+          borderRadius: '2px',
+        }}>
+          <div className="flex items-center gap-2 mb-1">
+            <span style={{
+              fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600, letterSpacing: '0.1em',
+              color: alert.type === 'warning' ? 'var(--color-amber)' : 'var(--color-emerald)',
+            }}>
+              {alert.title}
+            </span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: 'var(--color-text-dim)' }}>
+              {alert.timestamp}
+            </span>
+          </div>
+          <p style={{ fontFamily: 'var(--font-body)', fontSize: '12px', color: 'var(--color-text-secondary)', margin: 0, lineHeight: '1.5' }}>
+            {alert.message}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── Main Component ── */
 export default function Analysis() {
   const {
@@ -447,6 +540,9 @@ export default function Analysis() {
                 })}
               </div>
             )}
+
+            {/* BODHI Health Watch — Autonomous Monitoring */}
+            {done && hasScore && <BodhiHealthWatch conditions={conditions} trends={trends} />}
           </div>
 
           {/* Sticky Proceed Button — only after Mudra completes */}

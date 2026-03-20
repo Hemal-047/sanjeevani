@@ -71,3 +71,24 @@ export async function sendPurchaseRequest(data) {
     body: JSON.stringify(data),
   });
 }
+
+// Auto-match
+export async function triggerAutoMatch(criteria, attestations, enabled = true) {
+  return request('/api/marketplace/auto-match', {
+    method: 'POST',
+    body: JSON.stringify({ criteria, attestations, enabled }),
+  });
+}
+
+export async function getAutoMatchStatus() {
+  return request('/api/marketplace/auto-match/status');
+}
+
+// Agent-to-Agent API
+export async function getAgentsStatus() {
+  return request('/api/agents/status');
+}
+
+export async function queryAgent(name) {
+  return request(`/api/agents/${name}/query`);
+}

@@ -5,6 +5,7 @@ const cors = require('cors');
 const analyzeRoutes = require('./routes/analyze');
 const attestationRoutes = require('./routes/attestation');
 const marketplaceRoutes = require('./routes/marketplace');
+const agentRoutes = require('./routes/agents');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -26,6 +27,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/analyze', analyzeRoutes);
 app.use('/api/attestation', attestationRoutes);
 app.use('/api/marketplace', marketplaceRoutes);
+app.use('/api/agents', agentRoutes);
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Sanjeevani backend running on port ${PORT}`);

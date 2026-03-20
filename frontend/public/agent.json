@@ -15,7 +15,11 @@
       "role": "Cross-Reference & Discovery",
       "description": "5-step reasoning chain that discovers patterns, trends, family risk overlays, and drug interactions across all documents",
       "model": "llama-3.3-70b",
-      "capabilities": ["timeline-analysis", "trend-detection", "family-risk-overlay", "drug-interaction-check", "synthesis"]
+      "capabilities": ["timeline-analysis", "trend-detection", "family-risk-overlay", "drug-interaction-check", "synthesis"],
+      "autonomous": {
+        "health_watch": true,
+        "description": "Continuously monitors detected conditions and biomarker trends, alerts on changes"
+      }
     },
     {
       "name": "MUDRA",
@@ -29,7 +33,12 @@
       "role": "Marketplace Matching",
       "description": "Bridges patients to researchers by generating matchability profiles and ranking attestations against research criteria",
       "model": "llama-3.3-70b",
-      "capabilities": ["patient-profiling", "researcher-matching", "data-valuation"]
+      "capabilities": ["patient-profiling", "researcher-matching", "data-valuation"],
+      "autonomous": {
+        "auto_match": true,
+        "interval_seconds": 30,
+        "description": "Periodically scans for new patient matches against researcher criteria"
+      }
     }
   ],
   "operator_wallet": "0xbb16Ee0D1693474857BE34832BbB3e5FC4c18f4c",
@@ -38,6 +47,11 @@
   "chain_id": 84532,
   "supported_tools": ["venice-ai", "base-sepolia", "pdf-parse", "ethers", "sharp"],
   "tech_stack": ["node.js", "express", "react", "vite", "tailwindcss", "solidity", "hardhat", "ethers-v6", "venice-ai"],
+  "agent_api": {
+    "status": "GET /api/agents/status",
+    "query": "GET /api/agents/:name/query",
+    "description": "Inter-agent communication API for querying agent capabilities and state"
+  },
   "privacy": "venice-zero-retention",
   "ai_provider": {
     "name": "Venice AI",

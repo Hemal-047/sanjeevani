@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { searchResearcher } from '../services/api';
+import { useState, useEffect, useRef } from 'react';
+import { searchResearcher, triggerAutoMatch } from '../services/api';
 import { sendTrialInvitation, requestDataPurchase, switchToBaseSepolia, txLink } from '../services/wallet';
 
 const CONDITION_OPTIONS = [
@@ -23,6 +23,11 @@ export default function Research() {
   const [inviteForm, setInviteForm] = useState({ studyName: '', description: '', compensation: '0.001' });
   const [purchaseForm, setPurchaseForm] = useState({ dataRequested: '', price: '0.001' });
   const [txStatus, setTxStatus] = useState({});
+  const [autoMatchEnabled, setAutoMatchEnabled] = useState(false);
+  const [autoMatchResults, setAutoMatchResults] = useState([]);
+  const [autoMatchLastRun, setAutoMatchLastRun] = useState(null);
+  const [autoMatchSearching, setAutoMatchSearching] = useState(false);
+  const autoMatchInterval = useRef(null);
 
   // Mock attestations for demo (supplements onchain data)
   const mockAttestations = [
@@ -32,6 +37,38 @@ export default function Research() {
     { attestationId: 4, conditionCode: 'I10', conditionName: 'Essential Hypertension', severity: 'moderate', confidence: 88, evidenceSummary: 'BP 145/92, on amlodipine', userAge: 60 },
     { attestationId: 5, conditionCode: 'R73.03', conditionName: 'Pre-diabetes', severity: 'moderate', confidence: 75, evidenceSummary: 'Fasting glucose 108, single reading', userAge: 38 },
   ];
+
+  // Auto-match polling
+  useEffect(() => {
+    if (!autoMatchEnabled) {
+      if (autoMatchInterval.current) clearInterval(autoMatchInterval.current);
+      return;
+    }
+    async function runAutoMatch() {
+      if (criteria.conditions.length === 0) return;
+      setAutoMatchSearching(true);
+      try {
+        const res = await triggerAutoMatch(criteria, mockAttestations);
+        setAutoMatchResults(res.matches || []);
+        setAutoMatchLastRun(new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+      } catch { /* silent */ }
+      setAutoMatchSearching(false);
+    }
+    runAutoMatch();
+    autoMatchInterval.current = setInterval(runAutoMatch, 30000);
+    return () => clearInterval(autoMatchInterval.current);
+  }, [autoMatchEnabled, criteria.conditions.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function toggleAutoMatch() {
+    if (autoMatchEnabled) {
+      setAutoMatchEnabled(false);
+      setAutoMatchResults([]);
+      setAutoMatchLastRun(null);
+      triggerAutoMatch(null, null, false).catch(() => {});
+    } else {
+      setAutoMatchEnabled(true);
+    }
+  }
 
   async function handleSearch() {
     setSearching(true);
@@ -218,6 +255,66 @@ export default function Research() {
 
       {/* Right: Results (65%) */}
       <div className="flex-1 p-6 overflow-y-auto">
+        {/* SETU Auto-Match Section */}
+        <div className="mb-6 slide-in" style={{
+          background: 'var(--color-surface)', border: `1px solid ${autoMatchEnabled ? 'var(--color-gold)' : 'var(--color-border)'}`,
+          borderRadius: '2px', padding: '16px',
+        }}>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-3">
+              <h3 className="agent-name" style={{ fontSize: '11px', color: 'var(--color-gold)', margin: 0 }}>SETU AUTO-MATCH</h3>
+              {autoMatchEnabled && (
+                <span className="pulse-gold" style={{
+                  width: '6px', height: '6px', borderRadius: '50%', background: 'var(--color-gold)',
+                  display: 'inline-block',
+                }} />
+              )}
+              {autoMatchEnabled && autoMatchLastRun && (
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--color-text-dim)' }}>
+                  last scan: {autoMatchLastRun}
+                </span>
+              )}
+            </div>
+            <div className={`toggle-track ${autoMatchEnabled ? 'active' : ''}`} onClick={toggleAutoMatch} style={{ cursor: 'pointer' }}>
+              <div className="toggle-thumb" />
+            </div>
+          </div>
+          <p style={{ fontFamily: 'var(--font-body)', fontSize: '11px', color: 'var(--color-text-dim)', margin: 0, lineHeight: '1.5' }}>
+            {autoMatchEnabled
+              ? `Autonomous search active — scanning every 30s with current criteria. ${autoMatchResults.length} match${autoMatchResults.length !== 1 ? 'es' : ''} found.`
+              : 'Enable to let SETU autonomously scan for matching patients using your current criteria.'}
+          </p>
+          {autoMatchEnabled && autoMatchSearching && (
+            <div style={{ marginTop: '8px' }}>
+              <span className="pulse-gold" style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--color-gold)' }}>
+                scanning...
+              </span>
+            </div>
+          )}
+          {autoMatchEnabled && autoMatchResults.length > 0 && (
+            <div style={{ marginTop: '12px', borderTop: '1px solid var(--color-border)', paddingTop: '10px' }}>
+              {autoMatchResults.slice(0, 3).map((m, i) => {
+                const attestation = mockAttestations.find(a => a.attestationId === m.attestationId);
+                return (
+                  <div key={i} className="flex items-center gap-3" style={{ padding: '4px 0' }}>
+                    <span style={{ fontFamily: 'var(--font-body)', fontSize: '12px', color: 'var(--color-text)', flex: 1 }}>
+                      {attestation?.conditionName || `#${m.attestationId}`}
+                    </span>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--color-gold)' }}>
+                      {m.matchScore}
+                    </span>
+                  </div>
+                );
+              })}
+              {autoMatchResults.length > 3 && (
+                <p style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--color-text-dim)', marginTop: '4px' }}>
+                  +{autoMatchResults.length - 3} more
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+
         {!results ? (
           <div className="flex items-center justify-center h-full">
             <p style={{ fontFamily: 'var(--font-mono)', fontSize: '13px', color: 'var(--color-text-dim)' }}>

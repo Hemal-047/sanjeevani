@@ -7,6 +7,53 @@ const router = express.Router();
 const trialInvitations = [];
 const purchaseRequests = [];
 
+// Auto-match state
+let autoMatchConfig = null;
+let autoMatchResults = [];
+
+// POST /auto-match — configure and trigger auto-match
+router.post('/auto-match', async (req, res) => {
+  const { criteria, attestations, enabled } = req.body;
+
+  if (enabled === false) {
+    autoMatchConfig = null;
+    autoMatchResults = [];
+    return res.json({ success: true, status: 'disabled', matches: [] });
+  }
+
+  if (!criteria || !attestations || attestations.length === 0) {
+    return res.status(400).json({ error: 'missing_input', message: 'criteria and attestations are required' });
+  }
+
+  autoMatchConfig = { criteria, attestations, lastRun: new Date().toISOString() };
+
+  try {
+    const result = await setu.researcherSearch(criteria, attestations);
+    autoMatchResults = result.matches || [];
+    autoMatchConfig.lastRun = new Date().toISOString();
+    res.json({
+      success: true,
+      status: 'active',
+      matches: autoMatchResults,
+      totalMatches: autoMatchResults.length,
+      lastRun: autoMatchConfig.lastRun,
+      searchSummary: result.searchSummary || null,
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'auto_match_failed', message: err.message });
+  }
+});
+
+// GET /auto-match/status — check auto-match state
+router.get('/auto-match/status', (req, res) => {
+  res.json({
+    success: true,
+    active: !!autoMatchConfig,
+    lastRun: autoMatchConfig?.lastRun || null,
+    matchCount: autoMatchResults.length,
+  });
+});
+
 router.post('/patient-profile', async (req, res) => {
   const { attestations } = req.body;
 
