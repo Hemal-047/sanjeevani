@@ -1,0 +1,148 @@
+{
+  "session_id": "demo_session_001",
+  "timestamp": "2026-03-20T10:30:00.000Z",
+  "documents_uploaded": 5,
+  "family_history_provided": true,
+  "agent_decisions": [
+    {
+      "agent": "DRISHTI",
+      "step": 1,
+      "action": "document_classification",
+      "input": "blood_chemistry_jun_2025.pdf",
+      "decision": "Classified as lab_report based on content structure (test names, values, reference ranges)",
+      "model": "llama-3.3-70b",
+      "tool_calls": ["pdf-parse"],
+      "output_summary": "Extracted 18 biomarkers including Fasting Glucose (110 mg/dL HIGH), HbA1c (5.9% HIGH), LDL (148 mg/dL HIGH)",
+      "confidence": 94,
+      "tokens_used": 2847,
+      "latency_ms": 3200
+    },
+    {
+      "agent": "DRISHTI",
+      "step": 2,
+      "action": "document_classification",
+      "input": "blood_chemistry_dec_2025.pdf",
+      "decision": "Classified as lab_report — follow-up to Jun 2025 panel, same patient",
+      "model": "llama-3.3-70b",
+      "tool_calls": ["pdf-parse"],
+      "output_summary": "Extracted 18 biomarkers. Fasting Glucose now 126 mg/dL (was 110), HbA1c now 6.4% (was 5.9%)",
+      "confidence": 96,
+      "tokens_used": 2901,
+      "latency_ms": 3100
+    },
+    {
+      "agent": "DRISHTI",
+      "step": 3,
+      "action": "vision_extraction",
+      "input": "prescription_dec_2025.pdf",
+      "decision": "Detected as prescription — medication names, dosages, and frequency patterns found",
+      "model": "llama-3.3-70b",
+      "tool_calls": ["pdf-parse"],
+      "output_summary": "Extracted 3 medications: Metformin 500mg BID, Atorvastatin 20mg OD, Fenofibrate 160mg OD",
+      "confidence": 88,
+      "tokens_used": 1650,
+      "latency_ms": 2800
+    },
+    {
+      "agent": "DRISHTI",
+      "step": 4,
+      "action": "document_classification",
+      "input": "lipid_panel_mar_2026.pdf",
+      "decision": "Classified as lab_report — focused lipid panel",
+      "model": "llama-3.3-70b",
+      "tool_calls": ["pdf-parse"],
+      "output_summary": "Total Cholesterol 232 HIGH, LDL 148 HIGH, HDL 39 LOW, Triglycerides 205 HIGH",
+      "confidence": 95,
+      "tokens_used": 1980,
+      "latency_ms": 2600
+    },
+    {
+      "agent": "DRISHTI",
+      "step": 5,
+      "action": "document_classification",
+      "input": "thyroid_panel_mar_2026.pdf",
+      "decision": "Classified as lab_report — thyroid function panel, all values normal",
+      "model": "llama-3.3-70b",
+      "tool_calls": ["pdf-parse"],
+      "output_summary": "TSH 2.1 NORMAL, T3 1.2 NORMAL, T4 8.5 NORMAL",
+      "confidence": 97,
+      "tokens_used": 1420,
+      "latency_ms": 2200
+    },
+    {
+      "agent": "BODHI",
+      "step": 6,
+      "action": "timeline_build",
+      "decision": "Organized 5 documents chronologically: Jun 2025 → Dec 2025 → Mar 2026. Identified 6 recurring biomarkers across reports.",
+      "model": "llama-3.3-70b",
+      "tool_calls": ["venice-chat"],
+      "output_summary": "Timeline built. Key recurring: Fasting Glucose (2 readings), HbA1c (2 readings), LDL (2 readings), HDL (2 readings), Triglycerides (2 readings)",
+      "tokens_used": 3450,
+      "latency_ms": 4100
+    },
+    {
+      "agent": "BODHI",
+      "step": 7,
+      "action": "trend_analysis",
+      "decision": "CRITICAL FINDING: Glucose rising 110→126 (+14.5%), HbA1c rising 5.9→6.4 (+8.5%). Both accelerating toward diabetic thresholds.",
+      "model": "llama-3.3-70b",
+      "tool_calls": ["venice-chat"],
+      "output_summary": "4 concerning trends detected. Glucose and HbA1c show accelerating rise. LDL stable-high. HDL critically low at 39.",
+      "tokens_used": 3200,
+      "latency_ms": 3800
+    },
+    {
+      "agent": "BODHI",
+      "step": 8,
+      "action": "family_risk_overlay",
+      "decision": "CRITICAL MATCH: Father has Type 2 Diabetes (onset age 52). Patient's glucose trajectory mirrors pre-diabetic progression. Combined hereditary + biomarker risk = CRITICAL.",
+      "model": "llama-3.3-70b",
+      "tool_calls": ["venice-chat"],
+      "output_summary": "Family risk overlay complete. 1 critical hereditary match (T2D), 1 moderate match (cardiovascular via dyslipidemia).",
+      "tokens_used": 2800,
+      "latency_ms": 3500
+    },
+    {
+      "agent": "BODHI",
+      "step": 9,
+      "action": "drug_interaction_check",
+      "decision": "No major interactions between Metformin, Atorvastatin, and Fenofibrate. Note: Atorvastatin + Fenofibrate combination requires liver enzyme monitoring (patient's ALT is borderline).",
+      "model": "llama-3.3-70b",
+      "tool_calls": ["venice-chat"],
+      "output_summary": "No critical interactions. 1 moderate warning: statin-fibrate combination + borderline ALT requires monitoring.",
+      "tokens_used": 2600,
+      "latency_ms": 3200
+    },
+    {
+      "agent": "BODHI",
+      "step": 10,
+      "action": "synthesis",
+      "decision": "Overall Risk Score: 78/100. Primary conditions: Pre-diabetes (R73.03, confidence 92%), Dyslipidemia (E78.5, confidence 95%). Both attestable onchain.",
+      "model": "llama-3.3-70b",
+      "tool_calls": ["venice-chat"],
+      "output_summary": "Synthesis complete. 2 attestable claims identified. 5 risk factors. 4 actionable recommendations.",
+      "tokens_used": 4100,
+      "latency_ms": 4800
+    },
+    {
+      "agent": "MUDRA",
+      "step": 11,
+      "action": "attestation_preparation",
+      "decision": "Validated 2 claims via Venice second-opinion. Pre-diabetes: ICD-10 R73.03, confidence 90%, severity HIGH. Dyslipidemia: ICD-10 E78.5, confidence 92%, severity HIGH.",
+      "model": "llama-3.3-70b",
+      "tool_calls": ["venice-chat", "sha256-hash"],
+      "output_summary": "2 attestations prepared with evidence hashes. Consent summary generated in plain language.",
+      "tokens_used": 3100,
+      "latency_ms": 3600
+    }
+  ],
+  "final_output": {
+    "risk_score": 78,
+    "conditions_detected": 2,
+    "attestations_prepared": 2,
+    "total_venice_calls": 8,
+    "total_tokens": 28049,
+    "total_latency_ms": 36900,
+    "onchain_tx_hashes": []
+  }
+}

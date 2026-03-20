@@ -1,0 +1,48 @@
+{
+  "name": "Sanjeevani",
+  "description": "Multi-agent health intelligence system — private health cognition to trustworthy public action",
+  "version": "1.0.0",
+  "agents": [
+    {
+      "name": "DRISHTI",
+      "role": "Document Intelligence",
+      "description": "Extracts structured health data from PDFs and images of lab reports, prescriptions, and discharge summaries",
+      "model": "qwen3-vl-235b-a22b",
+      "capabilities": ["pdf-extraction", "vision-ocr", "structured-output"]
+    },
+    {
+      "name": "BODHI",
+      "role": "Cross-Reference & Discovery",
+      "description": "5-step reasoning chain that discovers patterns, trends, family risk overlays, and drug interactions across all documents",
+      "model": "llama-3.3-70b",
+      "capabilities": ["timeline-analysis", "trend-detection", "family-risk-overlay", "drug-interaction-check", "synthesis"]
+    },
+    {
+      "name": "MUDRA",
+      "role": "Attestation Generation",
+      "description": "Validates health claims, maps to ICD-10 codes, generates evidence hashes, and prepares onchain attestations with consent summaries",
+      "model": "llama-3.3-70b",
+      "capabilities": ["icd10-mapping", "evidence-hashing", "consent-generation", "claim-validation"]
+    },
+    {
+      "name": "SETU",
+      "role": "Marketplace Matching",
+      "description": "Bridges patients to researchers by generating matchability profiles and ranking attestations against research criteria",
+      "model": "llama-3.3-70b",
+      "capabilities": ["patient-profiling", "researcher-matching", "data-valuation"]
+    }
+  ],
+  "operator_wallet": "0xbb16Ee0D1693474857BE34832BbB3e5FC4c18f4c",
+  "contract": "0xAB37D12B4f2e0f2C5e4B6aE44DdA173813917A17",
+  "network": "base-sepolia",
+  "chain_id": 84532,
+  "supported_tools": ["venice-ai", "base-sepolia", "pdf-parse", "ethers", "sharp"],
+  "tech_stack": ["node.js", "express", "react", "vite", "tailwindcss", "solidity", "hardhat", "ethers-v6", "venice-ai"],
+  "privacy": "venice-zero-retention",
+  "ai_provider": {
+    "name": "Venice AI",
+    "endpoint": "https://api.venice.ai/api/v1/chat/completions",
+    "data_retention": "zero",
+    "models_used": ["llama-3.3-70b", "qwen3-vl-235b-a22b"]
+  }
+}
