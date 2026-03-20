@@ -208,4 +208,52 @@ Rules for attestableClaims:
   }
 }
 
-module.exports = { analyze };
+/**
+ * Predictive Alert — Venice-powered 3-6 month health projection
+ * Used by Bodhi Health Watch for real autonomous monitoring
+ */
+async function predictiveAlert(synthesis) {
+  if (!synthesis) {
+    return { error: 'no_synthesis', message: 'No synthesis data provided' };
+  }
+
+  const messages = [
+    {
+      role: 'system',
+      content: `You are Bodhi, a health intelligence agent providing predictive health monitoring. Based on a patient's current health trends, conditions, and biomarker data, predict what will happen in 3-6 months if no intervention occurs.
+
+Return ONLY valid JSON (no markdown, no code fences):
+{
+  "prediction": "<2-3 sentence summary of projected health trajectory>",
+  "urgency": "low|moderate|high|critical",
+  "projectedBiomarkers": [
+    {
+      "biomarker": "<name>",
+      "currentValue": "<current>",
+      "projectedValue": "<projected in 3-6 months>",
+      "direction": "rising|falling|stable",
+      "concern": true|false
+    }
+  ],
+  "recommendedActions": ["<specific action>"],
+  "timeframe": "3-6 months"
+}
+
+Be specific with biomarker projections. Use actual numbers where possible. Focus on actionable insights.`,
+    },
+    {
+      role: 'user',
+      content: `Based on these health trends and conditions, predict what will happen in 3-6 months if no intervention occurs. Give specific biomarker projections.\n\n${JSON.stringify(synthesis, null, 2)}`,
+    },
+  ];
+
+  try {
+    const raw = await chatCompletion(messages, { maxTokens: 2048 });
+    const cleaned = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+    return JSON.parse(cleaned);
+  } catch (err) {
+    return { error: 'prediction_failed', message: err.message };
+  }
+}
+
+module.exports = { analyze, predictiveAlert };

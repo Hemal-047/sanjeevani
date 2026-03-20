@@ -72,11 +72,19 @@ export async function sendPurchaseRequest(data) {
   });
 }
 
-// Auto-match
-export async function triggerAutoMatch(criteria, attestations, enabled = true) {
+// Auto-match (backend fetches real onchain attestations)
+export async function triggerAutoMatch(criteria, enabled = true) {
   return request('/api/marketplace/auto-match', {
     method: 'POST',
-    body: JSON.stringify({ criteria, attestations, enabled }),
+    body: JSON.stringify({ criteria, enabled }),
+  });
+}
+
+// Health Watch — real Venice-powered predictive alert
+export async function fetchHealthWatchPrediction(synthesis) {
+  return request('/api/analyze/health-watch', {
+    method: 'POST',
+    body: JSON.stringify({ synthesis }),
   });
 }
 

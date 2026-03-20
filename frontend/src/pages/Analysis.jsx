@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
-import { analyzeComprehensive, prepareAttestations } from '../services/api';
+import { analyzeComprehensive, prepareAttestations, fetchHealthWatchPrediction, getAgentsStatus } from '../services/api';
 
 /* ── Biomarker grouping ── */
 const BIOMARKER_GROUPS = {
@@ -209,42 +209,39 @@ function BiomarkerGroup({ title, trends: groupTrends }) {
   );
 }
 
-/* ── BODHI Health Watch ── */
-function BodhiHealthWatch({ conditions, trends }) {
+/* ── BODHI Health Watch (Real Venice-powered prediction) ── */
+function BodhiHealthWatch({ synthesis }) {
   const [watchActive, setWatchActive] = useState(false);
-  const [alert, setAlert] = useState(null);
-  const alertTimer = useRef(null);
+  const [prediction, setPrediction] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  useEffect(() => {
-    if (!watchActive) {
-      setAlert(null);
-      if (alertTimer.current) clearTimeout(alertTimer.current);
+  async function toggleWatch() {
+    if (watchActive) {
+      setWatchActive(false);
+      setPrediction(null);
       return;
     }
-    // Simulate autonomous alert after 10s based on actual analysis data
-    alertTimer.current = setTimeout(() => {
-      const highRiskCondition = conditions.find(c => c.severity === 'high' || c.severity === 'critical');
-      const risingTrend = trends.find(t => t.direction === 'rising' && t.concern);
-      if (highRiskCondition || risingTrend) {
-        setAlert({
-          type: 'warning',
-          title: 'BODHI ALERT',
-          message: highRiskCondition
-            ? `Monitoring ${highRiskCondition.name} — elevated risk pattern detected. Consider follow-up testing.`
-            : `Rising trend in ${risingTrend.biomarker} — continued monitoring recommended.`,
-          timestamp: new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-        });
+    setWatchActive(true);
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetchHealthWatchPrediction(synthesis);
+      if (res.success && res.data) {
+        setPrediction({ ...res.data, timestamp: new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }) });
       } else {
-        setAlert({
-          type: 'info',
-          title: 'BODHI STATUS',
-          message: 'All monitored biomarkers within expected ranges. No action required.',
-          timestamp: new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-        });
+        setError(res.data?.message || 'Prediction failed');
       }
-    }, 10000);
-    return () => clearTimeout(alertTimer.current);
-  }, [watchActive, conditions, trends]);
+    } catch (err) {
+      setError(err.message);
+    }
+    setLoading(false);
+  }
+
+  const urgencyColor = prediction?.urgency === 'critical' ? '#DC2626'
+    : prediction?.urgency === 'high' ? 'var(--color-critical)'
+    : prediction?.urgency === 'moderate' ? 'var(--color-amber)'
+    : 'var(--color-emerald)';
 
   return (
     <div className="slide-up" style={{
@@ -256,48 +253,157 @@ function BodhiHealthWatch({ conditions, trends }) {
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-3">
           <h4 className="agent-name" style={{ fontSize: '10px', color: 'var(--color-gold)', margin: 0 }}>BODHI HEALTH WATCH</h4>
-          {watchActive && (
-            <span className="pulse-gold" style={{
-              width: '6px', height: '6px', borderRadius: '50%', background: 'var(--color-gold)',
-              display: 'inline-block',
-            }} />
+          {watchActive && !loading && (
+            <span className="pulse-gold" style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--color-gold)', display: 'inline-block' }} />
           )}
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: 'var(--color-text-dim)', letterSpacing: '0.1em' }}>
-            AUTONOMOUS MONITORING
+            {loading ? 'QUERYING VENICE AI...' : 'AUTONOMOUS MONITORING'}
           </span>
         </div>
-        <div className={`toggle-track ${watchActive ? 'active' : ''}`} onClick={() => setWatchActive(!watchActive)} style={{ cursor: 'pointer' }}>
+        <div className={`toggle-track ${watchActive ? 'active' : ''}`} onClick={toggleWatch} style={{ cursor: loading ? 'wait' : 'pointer' }}>
           <div className="toggle-thumb" />
         </div>
       </div>
       <p style={{ fontFamily: 'var(--font-body)', fontSize: '11px', color: 'var(--color-text-dim)', margin: 0, lineHeight: '1.5' }}>
-        {watchActive
-          ? `Bodhi is monitoring ${conditions.length} condition${conditions.length !== 1 ? 's' : ''} and ${trends.length} biomarker trend${trends.length !== 1 ? 's' : ''}.`
-          : 'Enable to let BODHI autonomously monitor your health patterns and alert on changes.'}
+        {!watchActive ? 'Enable to let BODHI generate a real predictive health alert using Venice AI.'
+          : loading ? 'Bodhi is analyzing your health trends and generating a 3-6 month projection...'
+          : `Prediction generated at ${prediction?.timestamp || 'N/A'}`}
       </p>
-      {alert && (
-        <div className="slide-up" style={{
-          marginTop: '12px', padding: '12px',
-          background: alert.type === 'warning' ? 'rgba(251,191,36,0.06)' : 'rgba(16,185,129,0.06)',
-          border: `1px solid ${alert.type === 'warning' ? 'rgba(251,191,36,0.2)' : 'rgba(16,185,129,0.2)'}`,
-          borderRadius: '2px',
-        }}>
-          <div className="flex items-center gap-2 mb-1">
-            <span style={{
-              fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600, letterSpacing: '0.1em',
-              color: alert.type === 'warning' ? 'var(--color-amber)' : 'var(--color-emerald)',
-            }}>
-              {alert.title}
-            </span>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: 'var(--color-text-dim)' }}>
-              {alert.timestamp}
-            </span>
-          </div>
-          <p style={{ fontFamily: 'var(--font-body)', fontSize: '12px', color: 'var(--color-text-secondary)', margin: 0, lineHeight: '1.5' }}>
-            {alert.message}
-          </p>
+
+      {loading && (
+        <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {[1, 2, 3].map(i => <div key={i} className="skeleton" style={{ height: '12px', borderRadius: '6px', width: `${80 - i * 12}%` }} />)}
         </div>
       )}
+
+      {error && (
+        <div className="slide-up" style={{ marginTop: '12px', padding: '8px 12px', background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.2)', borderRadius: '2px' }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--color-critical)' }}>{error}</span>
+        </div>
+      )}
+
+      {prediction && !prediction.error && (
+        <div className="slide-up" style={{ marginTop: '12px' }}>
+          {/* Urgency badge */}
+          <div className="flex items-center gap-2 mb-2">
+            <span style={{
+              fontFamily: 'var(--font-mono)', fontSize: '9px', letterSpacing: '0.1em', textTransform: 'uppercase',
+              color: urgencyColor, background: `${urgencyColor}15`, border: `1px solid ${urgencyColor}30`,
+              padding: '2px 8px', borderRadius: '1px',
+            }}>
+              {prediction.urgency} urgency
+            </span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: 'var(--color-text-dim)' }}>
+              {prediction.timeframe || '3-6 months'}
+            </span>
+          </div>
+
+          {/* Main prediction */}
+          <p style={{ fontFamily: 'var(--font-body)', fontSize: '12px', color: 'var(--color-text-secondary)', margin: '0 0 12px', lineHeight: '1.6' }}>
+            {prediction.prediction}
+          </p>
+
+          {/* Projected biomarkers */}
+          {prediction.projectedBiomarkers && prediction.projectedBiomarkers.length > 0 && (
+            <div style={{ marginBottom: '10px' }}>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: 'var(--color-text-dim)', letterSpacing: '0.1em' }}>PROJECTED BIOMARKERS</span>
+              {prediction.projectedBiomarkers.map((b, i) => (
+                <div key={i} className="flex items-center gap-2" style={{ padding: '4px 0', borderBottom: '1px solid var(--color-border)' }}>
+                  <span style={{ fontFamily: 'var(--font-body)', fontSize: '11px', color: 'var(--color-text)', flex: 1 }}>{b.biomarker}</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--color-text-secondary)' }}>{b.currentValue}</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: b.concern ? 'var(--color-critical)' : 'var(--color-text-dim)' }}>→</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: b.concern ? 'var(--color-critical)' : 'var(--color-emerald)', fontWeight: 600 }}>{b.projectedValue}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Recommended actions */}
+          {prediction.recommendedActions && prediction.recommendedActions.length > 0 && (
+            <div>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: 'var(--color-text-dim)', letterSpacing: '0.1em' }}>RECOMMENDED ACTIONS</span>
+              {prediction.recommendedActions.map((a, i) => (
+                <div key={i} style={{ fontFamily: 'var(--font-body)', fontSize: '11px', color: 'var(--color-text-secondary)', padding: '3px 0 3px 12px', borderLeft: '2px solid var(--color-gold-dim)' }}>
+                  {a}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Agent Status Bar ── */
+function AgentStatusBar({ running, done }) {
+  const [agents, setAgents] = useState([
+    { name: 'DRISHTI', status: 'idle' },
+    { name: 'BODHI', status: 'idle' },
+    { name: 'MUDRA', status: 'idle' },
+    { name: 'SETU', status: 'idle' },
+  ]);
+  const pollRef = useRef(null);
+
+  useEffect(() => {
+    async function fetchStatus() {
+      try {
+        const res = await getAgentsStatus();
+        if (res.success && res.agents) {
+          setAgents(res.agents.map(a => ({
+            name: a.name,
+            status: a.status,
+            detail: a.currentFile || (a.currentStep ? `step ${a.currentStep}/5` : null),
+          })));
+        }
+      } catch { /* silent */ }
+    }
+
+    // Poll faster during analysis, slower after
+    const interval = running ? 2000 : done ? 10000 : 5000;
+    fetchStatus();
+    pollRef.current = setInterval(fetchStatus, interval);
+    return () => clearInterval(pollRef.current);
+  }, [running, done]);
+
+  function dotColor(status) {
+    if (status === 'idle') return 'var(--color-text-dim)';
+    if (status === 'processing' || status === 'analyzing' || status === 'predicting' || status === 'scanning' || status === 'matching') return 'var(--color-gold)';
+    if (status === 'watching' || status === 'monitoring' || status === 'ready') return 'var(--color-emerald)';
+    if (status === 'error') return 'var(--color-critical)';
+    return 'var(--color-text-dim)';
+  }
+
+  function statusText(agent) {
+    if (agent.status === 'idle') return 'idle';
+    if (agent.detail) return `${agent.status} ${agent.detail}`;
+    return agent.status;
+  }
+
+  return (
+    <div className="flex items-center gap-4" style={{
+      padding: '8px 24px',
+      borderBottom: '1px solid rgba(255,255,255,0.06)',
+      background: 'rgba(255,255,255,0.01)',
+    }}>
+      {agents.map(a => {
+        const color = dotColor(a.status);
+        const isActive = a.status !== 'idle';
+        return (
+          <div key={a.name} className="flex items-center gap-2">
+            <span className={isActive && a.status !== 'ready' && a.status !== 'watching' && a.status !== 'monitoring' ? 'pulse-gold' : ''} style={{
+              width: '5px', height: '5px', borderRadius: '50%', background: color,
+              display: 'inline-block', flexShrink: 0,
+            }} />
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: isActive ? 'var(--color-text)' : 'var(--color-text-dim)', letterSpacing: '0.05em' }}>
+              {a.name}
+            </span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '8px', color: 'var(--color-text-dim)' }}>
+              {statusText(a)}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -457,6 +563,7 @@ export default function Analysis() {
           <div style={{ padding: '12px 24px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
             <h3 className="agent-name" style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>HEALTH PROFILE</h3>
           </div>
+          <AgentStatusBar running={running} done={done} />
           <div style={{ padding: '24px', paddingBottom: mudraResult ? '100px' : '24px', flex: 1, overflowY: 'auto' }}>
 
             {/* Risk Score */}
@@ -542,8 +649,8 @@ export default function Analysis() {
               </div>
             )}
 
-            {/* BODHI Health Watch — Autonomous Monitoring */}
-            {done && hasScore && <BodhiHealthWatch conditions={conditions} trends={trends} />}
+            {/* BODHI Health Watch — Real Venice-powered Prediction */}
+            {done && hasScore && <BodhiHealthWatch synthesis={synthesis} />}
           </div>
 
           {/* Sticky Proceed Button — only after Mudra completes */}

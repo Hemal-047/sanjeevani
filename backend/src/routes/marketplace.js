@@ -1,36 +1,66 @@
 const express = require('express');
 const setu = require('../agents/setu');
+const { getAllAttestations } = require('../services/contractReader');
+const { updateAgent } = require('./agents');
 
 const router = express.Router();
 
-// In-memory stores (will connect to smart contract later)
+// In-memory stores
 const trialInvitations = [];
 const purchaseRequests = [];
+
+// Demo fallback attestations (used when contract has no data)
+const DEMO_ATTESTATIONS = [
+  { attestationId: 1, conditionCode: 'R73.03', conditionName: 'Pre-diabetes', severity: 3, confidence: 90, evidenceSummary: 'Fasting glucose 126, HbA1c 6.4%', source: 'demo' },
+  { attestationId: 2, conditionCode: 'E78.5', conditionName: 'Dyslipidemia', severity: 3, confidence: 95, evidenceSummary: 'LDL 148, HDL 39, Triglycerides 205', source: 'demo' },
+  { attestationId: 3, conditionCode: 'E11', conditionName: 'Type 2 Diabetes', severity: 3, confidence: 95, evidenceSummary: 'HbA1c 7.8%, on metformin + glipizide', source: 'demo' },
+  { attestationId: 4, conditionCode: 'I10', conditionName: 'Essential Hypertension', severity: 2, confidence: 88, evidenceSummary: 'BP 145/92, on amlodipine', source: 'demo' },
+  { attestationId: 5, conditionCode: 'R73.03', conditionName: 'Pre-diabetes', severity: 2, confidence: 75, evidenceSummary: 'Fasting glucose 108, single reading', source: 'demo' },
+];
 
 // Auto-match state
 let autoMatchConfig = null;
 let autoMatchResults = [];
 
-// POST /auto-match — configure and trigger auto-match
+// POST /auto-match — query real onchain attestations + Venice matching
 router.post('/auto-match', async (req, res) => {
-  const { criteria, attestations, enabled } = req.body;
+  const { criteria, enabled } = req.body;
 
   if (enabled === false) {
     autoMatchConfig = null;
     autoMatchResults = [];
+    updateAgent('SETU', { status: 'idle', autoMatchActive: false });
     return res.json({ success: true, status: 'disabled', matches: [] });
   }
 
-  if (!criteria || !attestations || attestations.length === 0) {
-    return res.status(400).json({ error: 'missing_input', message: 'criteria and attestations are required' });
+  if (!criteria) {
+    return res.status(400).json({ error: 'missing_input', message: 'criteria is required' });
   }
 
-  autoMatchConfig = { criteria, attestations, lastRun: new Date().toISOString() };
+  updateAgent('SETU', { status: 'scanning', autoMatchActive: true });
+
+  // Fetch real onchain attestations
+  let onchainAttestations = [];
+  try {
+    onchainAttestations = await getAllAttestations();
+  } catch (err) {
+    console.error('[auto-match] Contract read error:', err.message);
+  }
+
+  // Merge onchain with demo fallbacks (dedup by attestationId)
+  const seenIds = new Set(onchainAttestations.map(a => a.attestationId));
+  const allAttestations = [
+    ...onchainAttestations,
+    ...DEMO_ATTESTATIONS.filter(d => !seenIds.has(d.attestationId)),
+  ];
+
+  autoMatchConfig = { criteria, lastRun: new Date().toISOString() };
 
   try {
-    const result = await setu.researcherSearch(criteria, attestations);
+    const result = await setu.researcherSearch(criteria, allAttestations);
     autoMatchResults = result.matches || [];
     autoMatchConfig.lastRun = new Date().toISOString();
+    updateAgent('SETU', { status: 'monitoring', autoMatchActive: true, matchesFound: autoMatchResults.length });
     res.json({
       success: true,
       status: 'active',
@@ -38,8 +68,11 @@ router.post('/auto-match', async (req, res) => {
       totalMatches: autoMatchResults.length,
       lastRun: autoMatchConfig.lastRun,
       searchSummary: result.searchSummary || null,
+      onchainCount: onchainAttestations.length,
+      demoCount: allAttestations.length - onchainAttestations.length,
     });
   } catch (err) {
+    updateAgent('SETU', { status: 'error', autoMatchActive: false });
     res.status(500).json({ error: 'auto_match_failed', message: err.message });
   }
 });
@@ -71,16 +104,33 @@ router.post('/patient-profile', async (req, res) => {
 });
 
 router.post('/search', async (req, res) => {
-  const { criteria, attestations } = req.body;
+  const { criteria } = req.body;
 
   if (!criteria) {
     return res.status(400).json({ error: 'missing_input', message: 'criteria object is required' });
   }
-  if (!attestations || attestations.length === 0) {
-    return res.status(400).json({ error: 'missing_input', message: 'attestations array is required' });
+
+  // Fetch real onchain attestations + demo fallbacks
+  let onchainAttestations = [];
+  try {
+    onchainAttestations = await getAllAttestations();
+  } catch (err) {
+    console.error('[search] Contract read error:', err.message);
   }
 
-  const result = await setu.researcherSearch(criteria, attestations);
+  const seenIds = new Set(onchainAttestations.map(a => a.attestationId));
+  const allAttestations = [
+    ...onchainAttestations,
+    ...DEMO_ATTESTATIONS.filter(d => !seenIds.has(d.attestationId)),
+  ];
+
+  if (allAttestations.length === 0) {
+    return res.status(400).json({ error: 'no_attestations', message: 'No attestations available for search' });
+  }
+
+  updateAgent('SETU', { status: 'searching' });
+  const result = await setu.researcherSearch(criteria, allAttestations);
+  updateAgent('SETU', { status: 'idle' });
 
   if (result.error) {
     return res.status(422).json(result);

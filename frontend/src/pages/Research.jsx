@@ -27,18 +27,26 @@ export default function Research() {
   const [autoMatchResults, setAutoMatchResults] = useState([]);
   const [autoMatchLastRun, setAutoMatchLastRun] = useState(null);
   const [autoMatchSearching, setAutoMatchSearching] = useState(false);
+  const [secondsAgo, setSecondsAgo] = useState(0);
+  const [prevMatchIds, setPrevMatchIds] = useState(new Set());
+  const [newMatchIds, setNewMatchIds] = useState(new Set());
+  const [onchainCount, setOnchainCount] = useState(0);
   const autoMatchInterval = useRef(null);
+  const timerInterval = useRef(null);
 
-  // Mock attestations for demo (supplements onchain data)
-  const mockAttestations = [
-    { attestationId: 1, conditionCode: 'R73.03', conditionName: 'Pre-diabetes', severity: 'high', confidence: 90, evidenceSummary: 'Fasting glucose 126, HbA1c 6.4%', userAge: 42 },
-    { attestationId: 2, conditionCode: 'E78.5', conditionName: 'Dyslipidemia', severity: 'high', confidence: 95, evidenceSummary: 'LDL 148, HDL 39, Triglycerides 205', userAge: 42 },
-    { attestationId: 3, conditionCode: 'E11', conditionName: 'Type 2 Diabetes', severity: 'high', confidence: 95, evidenceSummary: 'HbA1c 7.8%, on metformin + glipizide', userAge: 51 },
-    { attestationId: 4, conditionCode: 'I10', conditionName: 'Essential Hypertension', severity: 'moderate', confidence: 88, evidenceSummary: 'BP 145/92, on amlodipine', userAge: 60 },
-    { attestationId: 5, conditionCode: 'R73.03', conditionName: 'Pre-diabetes', severity: 'moderate', confidence: 75, evidenceSummary: 'Fasting glucose 108, single reading', userAge: 38 },
-  ];
+  // Live "X seconds ago" timer
+  useEffect(() => {
+    if (!autoMatchEnabled || !autoMatchLastRun) {
+      if (timerInterval.current) clearInterval(timerInterval.current);
+      setSecondsAgo(0);
+      return;
+    }
+    setSecondsAgo(0);
+    timerInterval.current = setInterval(() => setSecondsAgo(s => s + 1), 1000);
+    return () => clearInterval(timerInterval.current);
+  }, [autoMatchEnabled, autoMatchLastRun]);
 
-  // Auto-match polling
+  // Auto-match polling — backend fetches real onchain data
   useEffect(() => {
     if (!autoMatchEnabled) {
       if (autoMatchInterval.current) clearInterval(autoMatchInterval.current);
@@ -48,9 +56,18 @@ export default function Research() {
       if (criteria.conditions.length === 0) return;
       setAutoMatchSearching(true);
       try {
-        const res = await triggerAutoMatch(criteria, mockAttestations);
-        setAutoMatchResults(res.matches || []);
-        setAutoMatchLastRun(new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+        const res = await triggerAutoMatch(criteria);
+        const matches = res.matches || [];
+        // Detect new matches
+        const currentIds = new Set(matches.map(m => m.attestationId));
+        const newIds = new Set([...currentIds].filter(id => !prevMatchIds.has(id)));
+        setNewMatchIds(newIds);
+        setPrevMatchIds(currentIds);
+        // Clear new highlights after 3s
+        if (newIds.size > 0) setTimeout(() => setNewMatchIds(new Set()), 3000);
+        setAutoMatchResults(matches);
+        setAutoMatchLastRun(Date.now());
+        setOnchainCount(res.onchainCount || 0);
       } catch { /* silent */ }
       setAutoMatchSearching(false);
     }
@@ -64,7 +81,9 @@ export default function Research() {
       setAutoMatchEnabled(false);
       setAutoMatchResults([]);
       setAutoMatchLastRun(null);
-      triggerAutoMatch(null, null, false).catch(() => {});
+      setPrevMatchIds(new Set());
+      setNewMatchIds(new Set());
+      triggerAutoMatch(null, false).catch(() => {});
     } else {
       setAutoMatchEnabled(true);
     }
@@ -74,7 +93,8 @@ export default function Research() {
     setSearching(true);
     setResults(null);
     try {
-      const res = await searchResearcher(criteria, mockAttestations);
+      // Backend handles attestation data — pass criteria only with empty attestations placeholder
+      const res = await searchResearcher(criteria, []);
       setResults(res.data || res);
     } catch (err) {
       console.error(err);
@@ -271,7 +291,7 @@ export default function Research() {
               )}
               {autoMatchEnabled && autoMatchLastRun && (
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--color-text-dim)' }}>
-                  last scan: {autoMatchLastRun}
+                  last scan: {secondsAgo}s ago
                 </span>
               )}
             </div>
@@ -281,7 +301,7 @@ export default function Research() {
           </div>
           <p style={{ fontFamily: 'var(--font-body)', fontSize: '11px', color: 'var(--color-text-dim)', margin: 0, lineHeight: '1.5' }}>
             {autoMatchEnabled
-              ? `Autonomous search active — scanning every 30s with current criteria. ${autoMatchResults.length} match${autoMatchResults.length !== 1 ? 'es' : ''} found.`
+              ? `Autonomous search active — scanning every 30s with current criteria. ${autoMatchResults.length} match${autoMatchResults.length !== 1 ? 'es' : ''} found.${onchainCount > 0 ? ` (${onchainCount} onchain)` : ''}`
               : 'Enable to let SETU autonomously scan for matching patients using your current criteria.'}
           </p>
           {autoMatchEnabled && autoMatchSearching && (
@@ -293,19 +313,16 @@ export default function Research() {
           )}
           {autoMatchEnabled && autoMatchResults.length > 0 && (
             <div style={{ marginTop: '12px', borderTop: '1px solid var(--color-border)', paddingTop: '10px' }}>
-              {autoMatchResults.slice(0, 3).map((m, i) => {
-                const attestation = mockAttestations.find(a => a.attestationId === m.attestationId);
-                return (
-                  <div key={i} className="flex items-center gap-3" style={{ padding: '4px 0' }}>
+              {autoMatchResults.slice(0, 3).map((m, i) => (
+                  <div key={i} className={`flex items-center gap-3${newMatchIds.has(m.attestationId) ? ' match-new' : ''}`} style={{ padding: '4px 0', borderRadius: '2px' }}>
                     <span style={{ fontFamily: 'var(--font-body)', fontSize: '12px', color: 'var(--color-text)', flex: 1 }}>
-                      {attestation?.conditionName || `#${m.attestationId}`}
+                      {m.conditionName || `#${m.attestationId}`}
                     </span>
                     <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--color-gold)' }}>
                       {m.matchScore}
                     </span>
                   </div>
-                );
-              })}
+                ))}
               {autoMatchResults.length > 3 && (
                 <p style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--color-text-dim)', marginTop: '4px' }}>
                   +{autoMatchResults.length - 3} more
@@ -339,7 +356,6 @@ export default function Research() {
             )}
 
             {matches.map((m, i) => {
-              const attestation = mockAttestations.find(a => a.attestationId === m.attestationId);
               const isExpanded = expandedRow === i;
 
               return (
@@ -352,7 +368,7 @@ export default function Research() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <span style={{ fontFamily: 'var(--font-body)', fontSize: '13px' }}>
-                            {attestation?.conditionName || `Attestation #${m.attestationId}`}
+                            {m.conditionName || `Attestation #${m.attestationId}`}
                           </span>
                           <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--color-text-dim)', background: 'rgba(255,255,255,0.03)', padding: '1px 4px', border: '1px solid var(--color-border)', borderRadius: '1px' }}>
                             #{m.attestationId}
@@ -374,7 +390,7 @@ export default function Research() {
                         <div style={{ flex: 1, height: '2px', background: 'var(--color-border)', position: 'relative' }}>
                           <div style={{
                             position: 'absolute', top: 0, left: 0, height: '100%',
-                            width: `${attestation?.confidence || 0}%`,
+                            width: `${m.confidence || 0}%`,
                             background: 'var(--color-emerald)', borderRadius: '1px',
                           }} />
                         </div>

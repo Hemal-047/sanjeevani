@@ -2,6 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const drishti = require('../agents/drishti');
 const bodhi = require('../agents/bodhi');
+const { updateAgent } = require('./agents');
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
@@ -74,14 +75,17 @@ router.post('/comprehensive', upload.array('files', 10), async (req, res) => {
       continue;
     }
 
+    updateAgent('DRISHTI', { status: 'processing', currentFile: file.originalname });
     const result = await drishti.analyze(file.buffer, { mimeType: file.mimetype });
     extractions.push({ filename: file.originalname, ...result });
+    updateAgent('DRISHTI', { status: 'idle', documentsProcessed: extractions.filter(e => !e.error).length });
   }
 
   // Filter out failed extractions for Bodhi
   const validExtractions = extractions.filter(e => !e.error);
 
   if (validExtractions.length === 0) {
+    updateAgent('DRISHTI', { status: 'idle' });
     return res.status(422).json({
       error: 'no_valid_extractions',
       message: 'None of the uploaded files could be processed',
@@ -90,13 +94,39 @@ router.post('/comprehensive', upload.array('files', 10), async (req, res) => {
   }
 
   // Step 2: Run Bodhi on all valid extractions
+  updateAgent('BODHI', { status: 'analyzing', currentStep: 1 });
   const bodhiResult = await bodhi.analyze(validExtractions, familyHistory);
+  updateAgent('BODHI', { status: 'idle', analysesCompleted: 1 });
+
+  // Step 3: Mark Mudra as ready (attestation prep happens client-side via /attestation/prepare)
+  if (bodhiResult.success && bodhiResult.synthesis) {
+    updateAgent('MUDRA', { status: 'ready', attestationsGenerated: 0 });
+  }
 
   res.json({
     success: true,
     extractions,
     analysis: bodhiResult,
   });
+});
+
+// Health Watch — real Venice-powered predictive alert
+router.post('/health-watch', async (req, res) => {
+  const { synthesis } = req.body;
+  if (!synthesis) {
+    return res.status(400).json({ error: 'missing_input', message: 'synthesis data is required' });
+  }
+
+  updateAgent('BODHI', { status: 'predicting', watchActive: true });
+
+  try {
+    const prediction = await bodhi.predictiveAlert(synthesis);
+    updateAgent('BODHI', { status: 'watching', watchActive: true });
+    res.json({ success: true, data: prediction });
+  } catch (err) {
+    updateAgent('BODHI', { status: 'idle', watchActive: false });
+    res.status(500).json({ error: 'prediction_failed', message: err.message });
+  }
 });
 
 module.exports = router;
