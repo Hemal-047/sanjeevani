@@ -98,42 +98,4 @@ async function analyze(fileBuffer, { mimeType = 'application/pdf', documentType 
   }
 }
 
-// Process files in batches of 2 with 1s delay between batches to avoid rate limits
-async function analyzeParallel(files) {
-  const ALLOWED_TYPES = ['application/pdf', 'image/png', 'image/jpeg', 'image/webp'];
-  const BATCH_SIZE = 2;
-  const BATCH_DELAY_MS = 1000;
-  const results = [];
-
-  for (let i = 0; i < files.length; i += BATCH_SIZE) {
-    const batch = files.slice(i, i + BATCH_SIZE);
-
-    const batchPromises = batch.map(async (file) => {
-      if (!ALLOWED_TYPES.includes(file.mimetype)) {
-        return { filename: file.originalname, error: 'invalid_type', message: `Unsupported: ${file.mimetype}` };
-      }
-
-      try {
-        console.log(`[DRISHTI] Processing ${file.originalname}...`);
-        const result = await analyze(file.buffer, { mimeType: file.mimetype });
-        console.log(`[DRISHTI] Done: ${file.originalname} (confidence: ${result.confidence || 'N/A'})`);
-        return { filename: file.originalname, ...result };
-      } catch (err) {
-        console.error(`[DRISHTI] Error processing ${file.originalname}:`, err.message);
-        return { filename: file.originalname, error: 'analysis_failed', message: err.message };
-      }
-    });
-
-    const batchResults = await Promise.all(batchPromises);
-    results.push(...batchResults);
-
-    // Delay between batches (skip after last batch)
-    if (i + BATCH_SIZE < files.length) {
-      await new Promise(r => setTimeout(r, BATCH_DELAY_MS));
-    }
-  }
-
-  return results;
-}
-
-module.exports = { analyze, analyzeParallel };
+module.exports = { analyze };

@@ -2,7 +2,6 @@ const express = require('express');
 const multer = require('multer');
 const drishti = require('../agents/drishti');
 const bodhi = require('../agents/bodhi');
-const mudra = require('../agents/mudra');
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
@@ -36,16 +35,26 @@ router.post('/batch', upload.array('files', 10), async (req, res) => {
     return res.status(400).json({ error: 'no_files', message: 'No files uploaded' });
   }
 
-  const results = await drishti.analyzeParallel(req.files);
+  const results = [];
+  for (const file of req.files) {
+    if (!ALLOWED_TYPES.includes(file.mimetype)) {
+      results.push({ filename: file.originalname, error: 'invalid_type', message: `Unsupported: ${file.mimetype}` });
+      continue;
+    }
+
+    const result = await drishti.analyze(file.buffer, { mimeType: file.mimetype });
+    results.push({ filename: file.originalname, ...result });
+  }
+
   res.json({ success: true, count: results.length, data: results });
 });
 
-// Comprehensive analysis: sequential Drishti (batches of 2) → Bodhi (3-step) → Mudra
 router.post('/comprehensive', upload.array('files', 10), async (req, res) => {
   if (!req.files || req.files.length === 0) {
     return res.status(400).json({ error: 'no_files', message: 'No files uploaded' });
   }
 
+  // Parse optional family history from request body
   let familyHistory = null;
   if (req.body.familyHistory) {
     try {
@@ -57,8 +66,19 @@ router.post('/comprehensive', upload.array('files', 10), async (req, res) => {
     }
   }
 
-  // Sequential Drishti processing (batches of 2 with 1s delay between batches)
-  const extractions = await drishti.analyzeParallel(req.files);
+  // Step 1: Run Drishti on each file
+  const extractions = [];
+  for (const file of req.files) {
+    if (!ALLOWED_TYPES.includes(file.mimetype)) {
+      extractions.push({ filename: file.originalname, error: 'invalid_type', message: `Unsupported: ${file.mimetype}` });
+      continue;
+    }
+
+    const result = await drishti.analyze(file.buffer, { mimeType: file.mimetype });
+    extractions.push({ filename: file.originalname, ...result });
+  }
+
+  // Filter out failed extractions for Bodhi
   const validExtractions = extractions.filter(e => !e.error);
 
   if (validExtractions.length === 0) {
@@ -69,20 +89,13 @@ router.post('/comprehensive', upload.array('files', 10), async (req, res) => {
     });
   }
 
-  // Bodhi analysis (optimized 3-step chain, compressed payloads)
+  // Step 2: Run Bodhi on all valid extractions
   const bodhiResult = await bodhi.analyze(validExtractions, familyHistory);
-
-  // Mudra attestation preparation
-  let mudraResult = null;
-  if (bodhiResult.success && bodhiResult.synthesis) {
-    mudraResult = await mudra.prepare(bodhiResult);
-  }
 
   res.json({
     success: true,
     extractions,
     analysis: bodhiResult,
-    mudra: mudraResult,
   });
 });
 

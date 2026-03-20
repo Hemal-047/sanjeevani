@@ -254,11 +254,7 @@ export default function Analysis() {
           }
           setBodhiAnalysis(analysis);
 
-          // Use Mudra result from comprehensive response if available
-          if (result.mudra && result.mudra.success) {
-            setMudraResult(result.mudra);
-            addLogEntry({ agent: 'MUDRA', action: `${result.mudra.approvedCount} attestations ready for publishing`, type: 'complete' });
-          } else if (analysis.synthesis) {
+          if (analysis.synthesis) {
             addLogEntry({ agent: 'MUDRA', action: 'Preparing onchain attestations...', type: 'start' });
             try {
               const mudra = await prepareAttestations(analysis);
