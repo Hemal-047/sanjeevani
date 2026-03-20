@@ -239,6 +239,10 @@ select {
   border-radius: 2px;
   cursor: pointer;
 }
+select option {
+  background: #1a1a2e;
+  color: var(--color-text);
+}
 select:focus {
   outline: none;
   border-color: var(--color-gold);

@@ -306,7 +306,13 @@ export default function Upload() {
                     onChange={e => { setConditionInput(e.target.value); setShowSuggestions(true); }}
                     onFocus={() => setShowSuggestions(true)}
                     onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                    placeholder="Type condition..."
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && conditionInput.trim()) {
+                        e.preventDefault();
+                        addConditionToMember(conditionInput.trim());
+                      }
+                    }}
+                    placeholder="Type condition or press Enter to add..."
                     className="w-full"
                   />
                   {showSuggestions && conditionInput && filteredSuggestions.length > 0 && (

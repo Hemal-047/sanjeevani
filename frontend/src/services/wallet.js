@@ -2,7 +2,7 @@ import { BrowserProvider, Contract, parseEther } from 'ethers';
 import HealthAttestationABI from '../contracts/HealthAttestation.json';
 
 const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS || '';
-const BASE_SEPOLIA_CHAIN_ID = '0x14a34'; // 84532
+const BASE_SEPOLIA_CHAIN_ID = '0x14A34'; // 84532
 const BASESCAN_TX_URL = 'https://sepolia.basescan.org/tx/';
 
 export function truncateAddress(addr) {
@@ -57,7 +57,7 @@ export async function switchToBaseSepolia() {
 async function ensureNetwork() {
   if (!window.ethereum) return;
   const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-  if (chainId !== BASE_SEPOLIA_CHAIN_ID) {
+  if (chainId.toLowerCase() !== BASE_SEPOLIA_CHAIN_ID.toLowerCase()) {
     await switchToBaseSepolia();
   }
 }
@@ -71,13 +71,16 @@ function ensureContractAddress() {
 export async function getContract() {
   ensureContractAddress();
   await ensureNetwork();
-  const signer = await getSigner();
+  // Create provider AFTER network switch to ensure correct chain
+  const provider = new BrowserProvider(window.ethereum);
+  const signer = await provider.getSigner();
   return new Contract(CONTRACT_ADDRESS, HealthAttestationABI.abi || HealthAttestationABI, signer);
 }
 
 export async function getReadOnlyContract() {
   ensureContractAddress();
-  const provider = await getProvider();
+  await ensureNetwork();
+  const provider = new BrowserProvider(window.ethereum);
   return new Contract(CONTRACT_ADDRESS, HealthAttestationABI.abi || HealthAttestationABI, provider);
 }
 
