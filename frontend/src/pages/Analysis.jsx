@@ -37,12 +37,24 @@ function RiskRing({ score, size = 160, stroke = 5 }) {
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
   const [animatedOffset, setAnimatedOffset] = useState(circumference);
+  const [displayScore, setDisplayScore] = useState(0);
   const color = score >= 70 ? 'var(--color-critical)' : score >= 40 ? 'var(--color-amber)' : 'var(--color-emerald)';
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setAnimatedOffset(circumference - (score / 100) * circumference);
     }, 100);
+    // Animate score counter
+    const duration = 1500;
+    const start = performance.now();
+    function tick(now) {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+      setDisplayScore(Math.round(eased * score));
+      if (progress < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
     return () => clearTimeout(timer);
   }, [score, circumference]);
 
@@ -59,7 +71,7 @@ function RiskRing({ score, size = 160, stroke = 5 }) {
             style={{ transition: 'stroke-dashoffset 1.5s ease-out' }} />
         </svg>
         <span style={{ fontFamily: 'var(--font-display)', fontSize: '48px', color, lineHeight: 1 }}>
-          {score}
+          {displayScore}
         </span>
       </div>
       <p style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--color-text-dim)', marginTop: '6px', letterSpacing: '0.15em' }}>
@@ -104,9 +116,9 @@ function Sparkline({ values, direction, concern }) {
 
   return (
     <svg width={w} height={h} style={{ flexShrink: 0 }}>
-      <polyline points={points} fill="none" stroke={color} strokeWidth="1.5" />
+      <polyline points={points} fill="none" stroke={color} strokeWidth="1.5" className="sparkline-path" />
       {nums.map((v, i) => (
-        <circle key={i} cx={(i / (nums.length - 1)) * w} cy={h - ((v - min) / range) * (h - 4) - 2} r="2.5" fill={color} />
+        <circle key={i} cx={(i / (nums.length - 1)) * w} cy={h - ((v - min) / range) * (h - 4) - 2} r="2.5" fill={color} style={{ opacity: 0, animation: `slideUp 300ms ease-out ${300 + i * 150}ms forwards` }} />
       ))}
     </svg>
   );

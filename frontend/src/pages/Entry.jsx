@@ -30,34 +30,46 @@ export default function Entry() {
   }
 
   return (
-    <div className="h-full flex flex-col items-center justify-center relative grid-bg" style={{ minHeight: '100vh' }}>
+    <div className="h-full flex flex-col items-center justify-center relative grid-bg" style={{ minHeight: '100vh', overflow: 'hidden' }}>
+
+      {/* Subtle background radial pulse */}
+      <div className="bg-pulse" />
+
       {/* Title */}
-      <h1 className="gold-shimmer" style={{
+      <h1 className="gold-shimmer entry-title" style={{
         fontFamily: 'var(--font-display)',
         fontSize: 'clamp(48px, 8vw, 96px)',
         lineHeight: 1.15,
         paddingBottom: '4px',
         marginBottom: '16px',
         fontWeight: 400,
+        position: 'relative',
+        zIndex: 1,
       }}>
         Sanjeevani
       </h1>
 
-      <p style={{
+      <p className="entry-tagline" style={{
         fontFamily: 'var(--font-mono)',
         fontSize: '13px',
         color: 'var(--color-text-secondary)',
         letterSpacing: '0.05em',
         marginBottom: '64px',
+        position: 'relative',
+        zIndex: 1,
       }}>
         Private Health Cognition → Trustworthy Public Action
       </p>
 
       {/* Agent Pipeline */}
-      <div className="flex items-center gap-0" style={{ maxWidth: '680px', width: '90%', justifyContent: 'center', marginBottom: '24px' }}>
+      <div className="flex items-center gap-0" style={{ maxWidth: '680px', width: '90%', justifyContent: 'center', marginBottom: '24px', position: 'relative', zIndex: 1 }}>
         {AGENTS.map((agent, i) => (
           <div key={agent.name} className="flex items-center">
-            <div className="flex flex-col items-center" style={{ minWidth: '120px', maxWidth: '130px' }}>
+            <div className={`flex flex-col items-center entry-agent`} style={{
+              minWidth: '120px',
+              maxWidth: '130px',
+              animationDelay: `${1.6 + i * 0.2}s`,
+            }}>
               <span className="agent-name" style={{
                 fontSize: '13px',
                 color: pipelineActive ? 'var(--color-gold)' : 'var(--color-text-secondary)',
@@ -77,7 +89,14 @@ export default function Entry() {
               </span>
             </div>
             {i < AGENTS.length - 1 && (
-              <div className="relative" style={{ width: '32px', height: '1px', background: 'var(--color-border-strong)', margin: '0 2px', marginBottom: '24px' }}>
+              <div className="relative entry-agent" style={{
+                width: '32px',
+                height: '1px',
+                background: 'var(--color-border-strong)',
+                margin: '0 2px',
+                marginBottom: '24px',
+                animationDelay: `${1.8 + i * 0.2}s`,
+              }}>
                 {pipelineActive && (
                   <div className="absolute top-0 h-full pipeline-glow" style={{
                     width: '16px',
@@ -93,11 +112,11 @@ export default function Entry() {
       </div>
 
       {/* Connect Buttons */}
-      <div className="flex gap-4" style={{ marginTop: '60px' }}>
+      <div className="flex gap-4 entry-buttons" style={{ marginTop: '60px', position: 'relative', zIndex: 1 }}>
         <button
           onClick={() => handleConnect('user')}
           disabled={connecting}
-          className="px-6 py-3 transition-all duration-200"
+          className="px-6 py-3"
           style={{
             background: 'transparent',
             border: '1px solid var(--color-gold)',
@@ -108,15 +127,13 @@ export default function Entry() {
             borderRadius: '2px',
             cursor: connecting ? 'wait' : 'pointer',
             opacity: connecting ? 0.5 : 1,
-          }}
-          onMouseEnter={e => { e.target.style.background = 'rgba(212,165,116,0.1)'; }}
-          onMouseLeave={e => { e.target.style.background = 'transparent'; }}>
+          }}>
           Connect Wallet — User Health Data Center
         </button>
         <button
           onClick={() => handleConnect('researcher')}
           disabled={connecting}
-          className="px-6 py-3 transition-all duration-200"
+          className="px-6 py-3"
           style={{
             background: 'transparent',
             border: '1px solid var(--color-gold)',
@@ -127,15 +144,13 @@ export default function Entry() {
             borderRadius: '2px',
             cursor: connecting ? 'wait' : 'pointer',
             opacity: connecting ? 0.5 : 1,
-          }}
-          onMouseEnter={e => { e.target.style.background = 'rgba(212,165,116,0.1)'; }}
-          onMouseLeave={e => { e.target.style.background = 'transparent'; }}>
+          }}>
           Connect Wallet — Research Marketplace
         </button>
       </div>
 
       {/* Footer */}
-      <div className="absolute bottom-6 left-6" style={{
+      <div className="absolute bottom-6 left-6 entry-footer" style={{
         fontFamily: 'var(--font-mono)',
         fontSize: '10px',
         color: 'var(--color-text-dim)',

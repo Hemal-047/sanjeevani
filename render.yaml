@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: sanjeevani-api
+    runtime: node
+    region: oregon
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: VENICE_API_KEY
+        sync: false
+      - key: PRIVATE_KEY
+        sync: false
+      - key: PORT
+        value: 3001
+      - key: CORS_ORIGIN
+        sync: false
+      - key: NODE_ENV
+        value: production

@@ -84,8 +84,9 @@ export default function Attestation() {
         ) : (
           <>
             {attestations.map((a, i) => (
-              <div key={i} className="mb-4 slide-in" style={{
+              <div key={i} className={`mb-4 slide-in hover-brighten ${selected[i] ? 'attest-active-border' : ''}`} style={{
                 background: 'var(--color-surface)', border: '1px solid var(--color-border)',
+                borderLeft: selected[i] ? '3px solid var(--color-gold)' : '1px solid var(--color-border)',
                 borderRadius: '2px', padding: '16px', animationDelay: `${i * 100}ms`,
               }}>
                 <div className="flex items-center gap-4">
