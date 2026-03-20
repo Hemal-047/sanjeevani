@@ -37,8 +37,8 @@ export default function Entry() {
 
       {/* Title */}
       <h1 className="gold-shimmer entry-title" style={{
-        fontFamily: 'var(--font-display)',
-        fontSize: 'clamp(48px, 8vw, 96px)',
+        fontFamily: "'Instrument Serif', 'Georgia', serif",
+        fontSize: 'clamp(56px, 9vw, 80px)',
         lineHeight: 1.15,
         paddingBottom: '4px',
         marginBottom: '16px',
@@ -54,7 +54,7 @@ export default function Entry() {
         fontSize: '13px',
         color: 'var(--color-text-secondary)',
         letterSpacing: '0.05em',
-        marginBottom: '64px',
+        marginBottom: '48px',
         position: 'relative',
         zIndex: 1,
       }}>
@@ -92,7 +92,7 @@ export default function Entry() {
               <div className="relative entry-agent" style={{
                 width: '32px',
                 height: '1px',
-                background: 'var(--color-border-strong)',
+                background: 'rgba(212,165,116,0.4)',
                 margin: '0 2px',
                 marginBottom: '24px',
                 animationDelay: `${1.8 + i * 0.2}s`,
@@ -111,8 +111,23 @@ export default function Entry() {
         ))}
       </div>
 
+      {/* Description */}
+      <p className="entry-agent" style={{
+        fontFamily: 'var(--font-body)',
+        fontSize: '12px',
+        color: 'var(--color-text-secondary)',
+        lineHeight: '1.6',
+        maxWidth: '540px',
+        textAlign: 'center',
+        position: 'relative',
+        zIndex: 1,
+        animationDelay: '2.4s',
+      }}>
+        Four AI agents privately analyze your medical records, discover hidden health patterns, and connect you to clinical trials — all without exposing your data.
+      </p>
+
       {/* Connect Buttons */}
-      <div className="flex gap-4 entry-buttons" style={{ marginTop: '60px', position: 'relative', zIndex: 1 }}>
+      <div className="flex gap-4 entry-buttons" style={{ marginTop: '40px', position: 'relative', zIndex: 1 }}>
         <button
           onClick={() => handleConnect('user')}
           disabled={connecting}

@@ -83,8 +83,9 @@ export default function Attestation() {
           </div>
         ) : (
           <>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', marginBottom: '24px' }}>
             {attestations.map((a, i) => (
-              <div key={i} className={`mb-4 slide-in hover-brighten ${selected[i] ? 'attest-active-border' : ''}`} style={{
+              <div key={i} className={`slide-in hover-brighten ${selected[i] ? 'attest-active-border' : ''}`} style={{
                 background: 'var(--color-surface)', border: '1px solid var(--color-border)',
                 borderLeft: selected[i] ? '3px solid var(--color-gold)' : '1px solid var(--color-border)',
                 borderRadius: '2px', padding: '16px', animationDelay: `${i * 100}ms`,
@@ -138,13 +139,16 @@ export default function Attestation() {
 
                 {/* Tx hash if published */}
                 {txHashes.find(t => t.index === i) && (
-                  <div className="mt-2">
+                  <div className="slide-up" style={{ marginTop: '10px' }}>
                     {txHashes.find(t => t.index === i).success ? (
                       <a
                         href={txLink(txHashes.find(t => t.index === i).hash)}
                         target="_blank" rel="noopener noreferrer"
-                        style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--color-emerald)', textDecoration: 'none' }}>
-                        ✓ tx: {txHashes.find(t => t.index === i).hash?.slice(0, 20)}...
+                        style={{
+                          fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--color-emerald)',
+                          textDecoration: 'none', display: 'block',
+                        }}>
+                        ✓ View on BaseScan
                       </a>
                     ) : (
                       <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--color-critical)' }}>
@@ -155,6 +159,7 @@ export default function Attestation() {
                 )}
               </div>
             ))}
+            </div>
 
             {/* Publish bar */}
             <div className="mt-8 flex items-center gap-4">
@@ -192,13 +197,13 @@ export default function Attestation() {
             {/* Stamp Animation */}
             {stampVisible && txHashes.some(t => t.success) && (
               <div className="flex items-center justify-center py-8">
-                <div className="stamp-animate" style={{
-                  width: '100px', height: '100px', borderRadius: '50%',
+                <div className="stamp-animate-enhanced" style={{
+                  width: '110px', height: '110px', borderRadius: '50%',
                   border: '3px solid var(--color-gold)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: 'var(--color-gold)', fontFamily: 'var(--font-mono)',
-                  fontSize: '11px', letterSpacing: '0.1em', textAlign: 'center',
-                  boxShadow: '0 0 20px rgba(212,165,116,0.3)',
+                  color: '#0A0A0F', fontFamily: 'var(--font-mono)',
+                  fontSize: '12px', letterSpacing: '0.15em', textAlign: 'center',
+                  fontWeight: 600,
                 }}>
                   SEALED
                 </div>

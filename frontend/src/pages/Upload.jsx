@@ -113,13 +113,16 @@ export default function Upload() {
         {/* Left: Upload Zone (58%) */}
         <div style={{ width: '58%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
           <div
-            className={`flex-1 relative flex flex-col items-center justify-center cursor-pointer transition-all duration-200`}
+            className={`relative flex flex-col items-center justify-center cursor-pointer transition-all duration-200`}
             style={{
               border: `1px solid ${dragOver ? 'var(--color-gold)' : 'rgba(255,255,255,0.1)'}`,
               borderRadius: '2px',
               background: dragOver ? 'rgba(212,165,116,0.03)' : 'transparent',
               transition: 'border-color 0.2s, background 0.2s',
               overflow: 'hidden',
+              height: hasFiles ? 'auto' : '300px',
+              maxHeight: hasFiles ? 'calc(100vh - 240px)' : '300px',
+              flexShrink: 0,
             }}
             onDragOver={e => { e.preventDefault(); setDragOver(true); }}
             onDragLeave={() => setDragOver(false)}
@@ -151,7 +154,7 @@ export default function Upload() {
                   const docType = DOC_TYPES[file.type] || { color: '#888', label: '?' };
                   return (
                     <div key={i} className="flex items-center gap-3 py-2 slide-in"
-                      style={{ borderBottom: '1px solid var(--color-border)', animationDelay: `${i * 50}ms` }}>
+                      style={{ borderBottom: '1px solid var(--color-border)', borderLeft: `3px solid ${docType.color}`, paddingLeft: '12px', animationDelay: `${i * 50}ms` }}>
                       <div style={{ width: '6px', height: '6px', borderRadius: '1px', background: docType.color, flexShrink: 0 }} />
                       <span style={{ fontFamily: 'var(--font-body)', fontSize: '13px', color: 'var(--color-text)', flex: 1 }}>
                         {file.name}

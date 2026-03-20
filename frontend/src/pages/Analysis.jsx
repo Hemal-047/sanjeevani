@@ -70,7 +70,7 @@ function RiskRing({ score, size = 160, stroke = 5 }) {
             strokeLinecap="round"
             style={{ transition: 'stroke-dashoffset 1.5s ease-out' }} />
         </svg>
-        <span style={{ fontFamily: 'var(--font-display)', fontSize: '48px', color, lineHeight: 1 }}>
+        <span style={{ fontFamily: "'Instrument Serif', 'Georgia', serif", fontSize: '56px', color, lineHeight: 1 }}>
           {displayScore}
         </span>
       </div>
@@ -405,14 +405,14 @@ export default function Analysis() {
             <h3 className="agent-name" style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>AGENT LOG</h3>
           </div>
           <div ref={logRef} className="flex-1 overflow-y-auto" style={{ padding: '8px 16px', fontFamily: 'var(--font-mono)', fontSize: '11px' }}>
-            {agentLog.map((entry, i) => {
-              const prevAgent = i > 0 ? agentLog[i - 1].agent : null;
+            {agentLog.filter(e => e.type !== 'error' || e.agent !== 'SYSTEM').map((entry, i, filteredLog) => {
+              const prevAgent = i > 0 ? filteredLog[i - 1].agent : null;
               const showSeparator = prevAgent && prevAgent !== entry.agent;
               const isActive = running && i === agentLog.length - 1 && entry.type !== 'complete';
               return (
                 <div key={i}>
                   {showSeparator && (
-                    <div className="flex items-center gap-2" style={{ margin: '12px 0' }}>
+                    <div className="flex items-center gap-2" style={{ margin: '16px 0' }}>
                       <div className="flex-1" style={{ height: '1px', background: 'var(--color-border)' }} />
                       <span style={{ color: 'var(--color-gold)', fontSize: '10px', letterSpacing: '0.15em', fontWeight: 600 }}>{entry.agent}</span>
                       <div className="flex-1" style={{ height: '1px', background: 'var(--color-border)' }} />
@@ -477,11 +477,12 @@ export default function Analysis() {
                 <h4 className="agent-name" style={{ fontSize: '10px', color: 'var(--color-text-dim)', marginBottom: '12px' }}>CONDITIONS DETECTED</h4>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
                   {conditions.map((c, i) => (
-                    <div key={i} className="slide-up" style={{
+                    <div key={i} className="slide-up hover-brighten" style={{
                       display: 'flex', alignItems: 'center', gap: '12px',
                       padding: '12px 12px',
                       borderBottom: '1px solid var(--color-border)',
                       borderLeft: `3px solid ${severityColor(c.severity)}`,
+                      background: 'rgba(255,255,255,0.02)',
                       animationDelay: `${300 + i * 150}ms`,
                     }}>
                       <span style={{ fontFamily: 'var(--font-body)', fontSize: '13px', color: 'var(--color-text)', flex: 1 }}>{c.name}</span>
