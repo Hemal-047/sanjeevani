@@ -3,6 +3,7 @@ import HealthAttestationABI from '../contracts/HealthAttestation.json';
 
 const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS || '';
 const BASE_SEPOLIA_CHAIN_ID = '0x14A34'; // 84532
+const BASE_SEPOLIA_NETWORK = { chainId: 84532, name: 'base-sepolia' };
 const BASESCAN_TX_URL = 'https://sepolia.basescan.org/tx/';
 
 export function truncateAddress(addr) {
@@ -18,16 +19,6 @@ export async function connectWallet() {
   if (!window.ethereum) throw new Error('No wallet found — install MetaMask, Coinbase Wallet, or any EIP-1193 compatible browser wallet');
   const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
   return accounts[0];
-}
-
-export async function getProvider() {
-  if (!window.ethereum) throw new Error('No wallet found — install MetaMask, Coinbase Wallet, or any EIP-1193 compatible browser wallet');
-  return new BrowserProvider(window.ethereum);
-}
-
-export async function getSigner() {
-  const provider = await getProvider();
-  return provider.getSigner();
 }
 
 export async function switchToBaseSepolia() {
@@ -59,6 +50,8 @@ async function ensureNetwork() {
   const chainId = await window.ethereum.request({ method: 'eth_chainId' });
   if (chainId.toLowerCase() !== BASE_SEPOLIA_CHAIN_ID.toLowerCase()) {
     await switchToBaseSepolia();
+    // Wait for wallet to settle after network switch
+    await new Promise(r => setTimeout(r, 500));
   }
 }
 
@@ -68,11 +61,15 @@ function ensureContractAddress() {
   }
 }
 
+// Create BrowserProvider with explicit network to prevent chain ID mismatch
+function createProvider() {
+  return new BrowserProvider(window.ethereum, BASE_SEPOLIA_NETWORK);
+}
+
 export async function getContract() {
   ensureContractAddress();
   await ensureNetwork();
-  // Create provider AFTER network switch to ensure correct chain
-  const provider = new BrowserProvider(window.ethereum);
+  const provider = createProvider();
   const signer = await provider.getSigner();
   return new Contract(CONTRACT_ADDRESS, HealthAttestationABI.abi || HealthAttestationABI, signer);
 }
@@ -80,7 +77,7 @@ export async function getContract() {
 export async function getReadOnlyContract() {
   ensureContractAddress();
   await ensureNetwork();
-  const provider = new BrowserProvider(window.ethereum);
+  const provider = createProvider();
   return new Contract(CONTRACT_ADDRESS, HealthAttestationABI.abi || HealthAttestationABI, provider);
 }
 
@@ -91,6 +88,7 @@ export async function publishAttestation(conditionCodeBytes32, conditionName, se
     const receipt = await tx.wait();
     return { tx, receipt, txUrl: txLink(tx.hash) };
   } catch (err) {
+    console.error('[publishAttestation] Error:', err);
     if (err.code === 'ACTION_REJECTED' || err.code === 4001) {
       throw new Error('Transaction rejected by user');
     }
