@@ -651,6 +651,31 @@ export default function Analysis() {
 
             {/* BODHI Health Watch — Real Venice-powered Prediction */}
             {done && hasScore && <BodhiHealthWatch synthesis={synthesis} />}
+
+            {/* Drishti Auto-Sync — Roadmap Hint */}
+            {done && hasScore && (
+              <div className="slide-up" style={{
+                marginTop: '16px',
+                border: '1px dashed var(--color-border)',
+                borderRadius: '2px',
+                padding: '14px 16px',
+                opacity: 0.55,
+              }}>
+                <h4 style={{
+                  fontFamily: 'var(--font-mono)', fontSize: '10px', letterSpacing: '0.12em',
+                  color: 'var(--color-text-dim)', margin: '0 0 8px 0',
+                }}>
+                  DRISHTI AUTO-SYNC — Coming Soon
+                </h4>
+                <p style={{
+                  fontFamily: 'var(--font-body)', fontSize: '11px', lineHeight: '1.6',
+                  color: 'var(--color-text-dim)', margin: 0,
+                }}>
+                  Connect health data sources (ABDM, Apple Health, Google Health Connect, EHR systems) for continuous autonomous monitoring.
+                  Drishti fetches new documents automatically. Bodhi re-analyzes on every change. Mudra updates attestations. Zero human intervention required.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Sticky Proceed Button — only after Mudra completes */}
