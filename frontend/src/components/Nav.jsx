@@ -25,7 +25,8 @@ export default function Nav() {
           onMouseLeave={e => { e.currentTarget.style.color = 'var(--color-text-secondary)'; }}
           title="Go back"
         >←</button>
-        <Link to="/" className="no-underline" style={{ flexShrink: 0 }}>
+        <Link to="/" className="no-underline flex items-center" style={{ flexShrink: 0 }}>
+          <img src="/logo.svg" alt="" width="32" height="32" style={{ marginRight: '10px' }} />
           <span style={{ fontFamily: 'var(--font-display)', fontSize: '20px', color: 'var(--color-gold)' }}>
             Sanjeevani
           </span>

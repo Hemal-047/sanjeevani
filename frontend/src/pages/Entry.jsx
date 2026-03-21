@@ -35,6 +35,13 @@ export default function Entry() {
       {/* Subtle background radial pulse */}
       <div className="bg-pulse" />
 
+      {/* Logo */}
+      <div className="entry-agent" style={{ position: 'relative', zIndex: 1, marginBottom: '12px', animationDelay: '0s' }}>
+        <img src="/logo.svg" alt="Sanjeevani" width="80" height="80" style={{
+          filter: 'drop-shadow(0 0 15px rgba(212,165,116,0.3))',
+        }} />
+      </div>
+
       {/* Title with radial glow */}
       <div style={{ position: 'relative', zIndex: 1 }}>
         <div style={{
