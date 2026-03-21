@@ -168,7 +168,7 @@ export default function Research() {
   const matches = results?.matches || [];
 
   return (
-    <div className="pt-14 flex" style={{ maxWidth: '1440px', margin: '0 auto', height: '100vh' }}>
+    <div className="flex" style={{ maxWidth: '1440px', margin: '0 auto', height: '100vh', paddingTop: '56px' }}>
       {/* Left: Search Filters (35%) */}
       <div className="p-6 overflow-y-auto" style={{ width: '35%', height: 'calc(100vh - 56px)', borderRight: '1px solid var(--color-border)', paddingTop: '24px' }}>
         <h3 className="agent-name mb-6" style={{ fontSize: '12px', color: 'var(--color-gold)' }}>
