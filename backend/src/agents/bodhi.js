@@ -222,7 +222,9 @@ async function predictiveAlert(synthesis) {
       role: 'system',
       content: `You are Bodhi, a health intelligence agent providing predictive health monitoring. Based on a patient's current health trends, conditions, and biomarker data, predict what will happen in 3-6 months if no intervention occurs.
 
-Return ONLY valid JSON (no markdown, no code fences):
+Respond ONLY with valid JSON, no markdown, no explanation, no code fences. Your entire response must be parseable by JSON.parse().
+
+Return this exact JSON structure:
 {
   "prediction": "<2-3 sentence summary of projected health trajectory>",
   "urgency": "low|moderate|high|critical",
@@ -250,7 +252,23 @@ Be specific with biomarker projections. Use actual numbers where possible. Focus
   try {
     const raw = await chatCompletion(messages, { maxTokens: 2048 });
     const cleaned = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
-    return JSON.parse(cleaned);
+    try {
+      return JSON.parse(cleaned);
+    } catch (parseErr) {
+      console.error('[BODHI] Venice response not valid JSON, using fallback. Raw:', raw.slice(0, 200));
+      // Fallback: generate prediction from synthesis data directly
+      return {
+        prediction: `Based on current trends, without intervention: ${synthesis.conditions?.map(c => c.name).join(', ') || 'detected conditions'} are likely to progress. Key biomarkers showing concerning trajectories require medical attention within 3-6 months.`,
+        urgency: synthesis.overallRiskScore > 70 ? 'high' : 'moderate',
+        projectedBiomarkers: synthesis.trends?.filter(t => t.concern).map(t => ({
+          name: t.biomarker,
+          currentValue: t.values?.[t.values.length - 1],
+          projectedDirection: t.direction
+        })) || [],
+        recommendedActions: ['Consult with specialist', 'Follow-up lab work in 4-6 weeks', 'Review current medication efficacy'],
+        timeframe: '3-6 months',
+      };
+    }
   } catch (err) {
     return { error: 'prediction_failed', message: err.message };
   }
