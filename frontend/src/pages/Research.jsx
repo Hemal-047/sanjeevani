@@ -333,9 +333,17 @@ export default function Research() {
         </div>
 
         {!results ? (
-          <div className="flex items-center justify-center h-full">
-            <p style={{ fontFamily: 'var(--font-mono)', fontSize: '13px', color: 'var(--color-text-dim)' }}>
-              Configure search criteria and run a search
+          <div className="flex flex-col items-center justify-center h-full" style={{ gap: '16px' }}>
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-dim)" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.4 }}>
+              <circle cx="11" cy="11" r="8" />
+              <path d="M21 21l-4.35-4.35" />
+              <path d="M11 8v6M8 11h6" />
+            </svg>
+            <p style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', color: 'var(--color-text-dim)', letterSpacing: '0.08em' }}>
+              SETU is ready to match
+            </p>
+            <p style={{ fontFamily: 'var(--font-body)', fontSize: '11px', color: 'var(--color-text-dim)', opacity: 0.6 }}>
+              Select conditions and search to find matching patients
             </p>
           </div>
         ) : (

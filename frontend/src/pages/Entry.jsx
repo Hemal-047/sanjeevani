@@ -35,19 +35,28 @@ export default function Entry() {
       {/* Subtle background radial pulse */}
       <div className="bg-pulse" />
 
-      {/* Title */}
-      <h1 className="gold-shimmer entry-title" style={{
-        fontFamily: "'Instrument Serif', 'Georgia', serif",
-        fontSize: 'clamp(56px, 9vw, 80px)',
-        lineHeight: 1.15,
-        paddingBottom: '4px',
-        marginBottom: '16px',
-        fontWeight: 400,
-        position: 'relative',
-        zIndex: 1,
-      }}>
-        Sanjeevani
-      </h1>
+      {/* Title with radial glow */}
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        <div style={{
+          position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+          width: '400px', height: '200px',
+          background: 'radial-gradient(ellipse at center, rgba(212,165,116,0.08) 0%, transparent 70%)',
+          pointerEvents: 'none',
+        }} />
+        <h1 className="gold-shimmer" style={{
+          fontFamily: "'Instrument Serif', 'Georgia', serif",
+          fontSize: 'clamp(56px, 9vw, 80px)',
+          lineHeight: 1.15,
+          paddingBottom: '4px',
+          marginBottom: '16px',
+          fontWeight: 400,
+          position: 'relative',
+          opacity: 0,
+          animation: 'entryFadeIn 1s ease-out 0.2s forwards, goldShimmer 6s ease-in-out 1.2s infinite',
+        }}>
+          Sanjeevani
+        </h1>
+      </div>
 
       <p className="entry-tagline" style={{
         fontFamily: 'var(--font-mono)',
@@ -89,10 +98,10 @@ export default function Entry() {
               </span>
             </div>
             {i < AGENTS.length - 1 && (
-              <div className="relative entry-agent" style={{
+              <div className={`relative entry-agent ${pipelineActive ? 'pipeline-line' : ''}`} style={{
                 width: '32px',
                 height: '1px',
-                background: 'rgba(212,165,116,0.4)',
+                background: pipelineActive ? undefined : 'rgba(212,165,116,0.4)',
                 margin: '0 2px',
                 marginBottom: '24px',
                 animationDelay: `${1.8 + i * 0.2}s`,
@@ -131,7 +140,7 @@ export default function Entry() {
         <button
           onClick={() => handleConnect('user')}
           disabled={connecting}
-          className="px-6 py-3"
+          className="px-6 py-3 btn-gold-glow"
           style={{
             background: 'transparent',
             border: '1px solid var(--color-gold)',
@@ -148,7 +157,7 @@ export default function Entry() {
         <button
           onClick={() => handleConnect('researcher')}
           disabled={connecting}
-          className="px-6 py-3"
+          className="px-6 py-3 btn-gold-glow"
           style={{
             background: 'transparent',
             border: '1px solid var(--color-gold)',

@@ -147,8 +147,10 @@ export default function Attestation() {
                         style={{
                           fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--color-emerald)',
                           textDecoration: 'none', display: 'block',
+                          background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.2)',
+                          padding: '8px 16px', borderRadius: '4px',
                         }}>
-                        ✓ View on BaseScan
+                        ✓ View on BaseScan — {txHashes.find(t => t.index === i).hash.slice(0, 20)}...
                       </a>
                     ) : (
                       <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--color-critical)' }}>
@@ -200,6 +202,8 @@ export default function Attestation() {
                 <div className="stamp-animate-enhanced" style={{
                   width: '110px', height: '110px', borderRadius: '50%',
                   border: '3px solid var(--color-gold)',
+                  background: '#D4A574',
+                  boxShadow: '0 0 30px rgba(212,165,116,0.4)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   color: '#0A0A0F', fontFamily: 'var(--font-mono)',
                   fontSize: '12px', letterSpacing: '0.15em', textAlign: 'center',

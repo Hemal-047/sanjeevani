@@ -121,7 +121,7 @@ export default function Upload() {
               transition: 'border-color 0.2s, background 0.2s',
               overflow: 'hidden',
               height: hasFiles ? 'auto' : '300px',
-              maxHeight: hasFiles ? 'calc(100vh - 240px)' : '300px',
+              maxHeight: '350px',
               flexShrink: 0,
             }}
             onDragOver={e => { e.preventDefault(); setDragOver(true); }}
@@ -196,7 +196,7 @@ export default function Upload() {
             <button
               onClick={() => hasFiles && navigate('/analyze')}
               disabled={!hasFiles}
-              className="flex-1 py-3 text-center transition-all duration-200"
+              className={`flex-1 py-3 text-center transition-all duration-200${hasFiles ? ' pulse-glow' : ''}`}
               style={{
                 background: hasFiles ? 'var(--color-gold)' : 'rgba(255,255,255,0.04)',
                 color: hasFiles ? '#0A0A0F' : 'var(--color-text-dim)',

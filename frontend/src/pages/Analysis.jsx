@@ -58,9 +58,11 @@ function RiskRing({ score, size = 160, stroke = 5 }) {
     return () => clearTimeout(timer);
   }, [score, circumference]);
 
+  const glowColor = score >= 70 ? 'rgba(239,68,68,0.3)' : score >= 40 ? 'rgba(251,191,36,0.3)' : 'rgba(52,211,153,0.3)';
+
   return (
     <div className="flex flex-col items-center">
-      <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
+      <div className="relative flex items-center justify-center" style={{ width: size, height: size, filter: `drop-shadow(0 0 10px ${glowColor})` }}>
         <svg width={size} height={size} className="absolute" style={{ transform: 'rotate(-90deg)' }}>
           <circle cx={size / 2} cy={size / 2} r={radius} fill="none"
             stroke="#1a1a2e" strokeWidth={stroke} />
@@ -506,7 +508,7 @@ export default function Analysis() {
       }}>
 
         {/* ── LEFT: Agent Log ── */}
-        <div className="flex flex-col" style={{ borderRight: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="flex flex-col" style={{ borderRight: '1px solid rgba(255,255,255,0.06)', background: '#06060a' }}>
           <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
             <h3 className="agent-name" style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>AGENT LOG</h3>
           </div>
@@ -581,10 +583,10 @@ export default function Analysis() {
             {/* Conditions */}
             {conditions.length > 0 && (
               <div className="slide-up" style={{ marginBottom: '32px', animationDelay: '200ms' }}>
-                <h4 className="agent-name" style={{ fontSize: '10px', color: 'var(--color-text-dim)', marginBottom: '12px' }}>CONDITIONS DETECTED</h4>
+                <h4 className="agent-name section-header" style={{ fontSize: '10px', color: 'var(--color-text-dim)', marginBottom: '12px' }}>CONDITIONS DETECTED</h4>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
                   {conditions.map((c, i) => (
-                    <div key={i} className="slide-up hover-brighten" style={{
+                    <div key={i} className="slide-up condition-row" style={{
                       display: 'flex', alignItems: 'center', gap: '12px',
                       padding: '12px 12px',
                       borderBottom: '1px solid var(--color-border)',
@@ -616,7 +618,7 @@ export default function Analysis() {
             {/* Biomarker Trends — grouped */}
             {Object.keys(groupedTrends).length > 0 && (
               <div className="slide-up" style={{ marginBottom: '32px', animationDelay: '600ms' }}>
-                <h4 className="agent-name" style={{ fontSize: '10px', color: 'var(--color-text-dim)', marginBottom: '12px' }}>BIOMARKER TRENDS</h4>
+                <h4 className="agent-name section-header" style={{ fontSize: '10px', color: 'var(--color-text-dim)', marginBottom: '12px' }}>BIOMARKER TRENDS</h4>
                 {Object.entries(groupedTrends).map(([group, items]) => (
                   <BiomarkerGroup key={group} title={group} trends={items} />
                 ))}
@@ -626,7 +628,7 @@ export default function Analysis() {
             {/* Medications */}
             {medications.length > 0 && (
               <div className="slide-up" style={{ marginBottom: '32px', animationDelay: '900ms' }}>
-                <h4 className="agent-name" style={{ fontSize: '10px', color: 'var(--color-text-dim)', marginBottom: '12px' }}>MEDICATIONS</h4>
+                <h4 className="agent-name section-header" style={{ fontSize: '10px', color: 'var(--color-text-dim)', marginBottom: '12px' }}>MEDICATIONS</h4>
                 {medications.map((m, i) => {
                   const hasInteraction = drugInteractions.some(d =>
                     d.drugs?.includes(m.name) || d.description?.includes(m.name)
