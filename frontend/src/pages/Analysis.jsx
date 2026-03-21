@@ -500,11 +500,11 @@ export default function Analysis() {
   const groupedTrends = groupTrends(trends);
 
   return (
-    <div className="pt-14 h-screen" style={{ maxWidth: '1440px', margin: '0 auto' }}>
+    <div className="h-screen" style={{ maxWidth: '1440px', margin: '0 auto', paddingTop: '64px' }}>
       <div style={{
         display: 'grid',
         gridTemplateColumns: '1fr 2fr 1fr',
-        height: 'calc(100vh - 56px)',
+        height: 'calc(100vh - 64px)',
       }}>
 
         {/* ── LEFT: Agent Log ── */}

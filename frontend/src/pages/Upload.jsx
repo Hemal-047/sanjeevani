@@ -97,7 +97,7 @@ export default function Upload() {
   const hasFiles = uploadedFiles.length > 0;
 
   return (
-    <div className="pt-14 h-screen flex flex-col" style={{ maxWidth: '1440px', margin: '0 auto' }}>
+    <div className="h-screen flex flex-col" style={{ maxWidth: '1440px', margin: '0 auto', paddingTop: '64px' }}>
       {/* Descriptor line */}
       <div style={{
         padding: '12px 24px 0',

@@ -168,9 +168,9 @@ export default function Research() {
   const matches = results?.matches || [];
 
   return (
-    <div className="flex" style={{ maxWidth: '1440px', margin: '0 auto', height: '100vh', paddingTop: '56px' }}>
+    <div className="flex" style={{ maxWidth: '1440px', margin: '0 auto', height: '100vh', paddingTop: '64px' }}>
       {/* Left: Search Filters (35%) */}
-      <div className="p-6 overflow-y-auto" style={{ width: '35%', height: 'calc(100vh - 56px)', borderRight: '1px solid var(--color-border)', paddingTop: '24px' }}>
+      <div className="p-6 overflow-y-auto" style={{ width: '35%', height: 'calc(100vh - 64px)', borderRight: '1px solid var(--color-border)', paddingTop: '24px' }}>
         <h3 className="agent-name mb-6" style={{ fontSize: '12px', color: 'var(--color-gold)' }}>
           SETU — PATIENT SEARCH
         </h3>
@@ -274,7 +274,7 @@ export default function Research() {
       </div>
 
       {/* Right: Results (65%) */}
-      <div className="p-6 overflow-y-auto" style={{ width: '65%', height: 'calc(100vh - 56px)', paddingTop: '24px' }}>
+      <div className="p-6 overflow-y-auto" style={{ width: '65%', height: 'calc(100vh - 64px)', paddingTop: '24px' }}>
         {/* SETU Auto-Match Section */}
         <div className="mb-6 slide-in" style={{
           background: 'var(--color-surface)', border: `1px solid ${autoMatchEnabled ? 'var(--color-gold)' : 'var(--color-border)'}`,
